@@ -23,8 +23,18 @@ double x;
 double y;
 double z;
 
+struct vector {
+    double x;
+    double y;
+    double z;
+};
 
-void setup() {
+
+//Make some globals 
+vector v = {0,0,0};
+vector u = {0,0,0};
+
+void setup() {    
     //Init serial communication
     pinMode(LEDPIN, OUTPUT);
  
@@ -50,6 +60,7 @@ int prev = 0;
 
 void loop() 
 {
+    
     // listen for communication from the ESP8266 and then write it to the serial monitor
     if ( mySerial.available() )   
     { 
@@ -94,6 +105,5 @@ void loop()
     Serial.print("AngleZ= ");
     Serial.println(z);
     Serial.println("-----------------------------------------");
-    delay(400);
 }
  
