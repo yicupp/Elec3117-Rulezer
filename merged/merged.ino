@@ -33,6 +33,12 @@ uint16_t packetSize;    // expected DMP packet size (default is 42 bytes)
 uint16_t fifoCount;     // count of all bytes currently in FIFO
 uint8_t fifoBuffer[64]; // FIFO storage buffer
 
+//keypad 
+#define KP_SDOPIN 9
+#define KP_SCLPIN 8
+int keyNum = 0;
+int keyPress = 0;
+
 // orientation/motion vars
 Quaternion q;           // [w, x, y, z]         quaternion container
 VectorFloat gravity;    // [x, y, z]            gravity vector
@@ -99,20 +105,22 @@ char *dbuf;
 void help() {
     Serial.println(F("*****************Help*****************"));
     Serial.println(F("Commands:"));
-    Serial.println("O | turn on laser");
-    Serial.println("C | turn off laser");
-    Serial.println("S | read state of laser");
-    Serial.println("D | measure d via laser");
-    Serial.println("M | slow measure");
-    Serial.println("F | fast measure");
-    Serial.println("P | set position for measurement");
-    Serial.println("G | get distance / accumulated distance");
-    Serial.println("V | set vector 1");
-    Serial.println("U | set vector 2");
-    Serial.println("K | kalculate distance");
-    Serial.println("I | default state");
-    Serial.println("A | get angle");
-    Serial.println("T | change measurement speed");
+    Serial.println(F("H | display help"));
+    Serial.println(F("O | turn on laser"));
+    Serial.println(F("C | turn off laser"));
+    Serial.println(F("S | read state of laser"));
+    Serial.println(F("D | measure d via laser"));
+    Serial.println(F("M | slow measure"));
+    Serial.println(F("F | fast measure"));
+    Serial.println(F("P | set position for measurement"));
+    Serial.println(F("G | get distance / accumulated distance"));
+    Serial.println(F("V | set vector 1"));
+    Serial.println(F("U | set vector 2"));
+    Serial.println(F("K | kalculate distance"));
+    Serial.println(F("I | default state"));
+    Serial.println(F("A | get orientation vector"));
+    Serial.println(F("T | change measurement speed"));
+    Serial.println(F("G, P, has not been implemented. Please use U, V, K to measure"));
 }
 
 int lasGetB( unsigned int to, char *buff, int buff_size ) {
@@ -143,7 +151,21 @@ char *findDigit(char *str) {
     return str;
 }
 
+int keypadRead(int sclpin, int sdopin){ 
+    //returns key number or 0 if no key PRESSED
+    int key = 0; //default to no keys pressed 
+    pinMode(KP_SCLPIN,OUTPUT);
+    digitalWrite(KP_SCLPIN,HIGH);
+    pinMode(KP_SDOPIN,INPUT);
+    delay(5);
 
+    for(int i=1; i<17; i++) {
+        digitalWrite(KP_SCLPIN, LOW);
+        digitalWrite(KP_SCLPIN,HIGH);
+        if(!digitalRead(KP_SDOPIN)){key=i;}
+    }
+    return key;
+}
 
 // ================================================================
 // ===               INTERRUPT DETECTION ROUTINE                ===
@@ -256,6 +278,15 @@ void loop() {
         {
             cmd = Serial.read();
         }
+
+        keyPress = keypadRead(KP_SCLPIN,KP_SDOPIN);
+        if(keyPress != keyNum) {
+            keyNum = keyPress;
+            Serial.print(F("Detected key press on key "));
+            Serial.println(keyPress); 
+        }
+        //delay(100);
+//        Serial.println(keyPress);
         
         switch(cmd) {
             case 'O' : 
@@ -378,7 +409,7 @@ void loop() {
     if ((mpuIntStatus & 0x10) || fifoCount == 1024) {
         // reset so we can continue cleanly
         mpu.resetFIFO();
-        Serial.println(F("FIFO overflow!"));
+//        Serial.println(F("FIFO overflow!"));
 
     // otherwise, check for DMP data ready interrupt (this should happen frequently)
     } else if (mpuIntStatus & 0x02) {
