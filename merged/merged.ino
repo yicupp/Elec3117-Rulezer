@@ -61,7 +61,7 @@ struct vector {
 };
 
 double d = 0;
-double d_offset = 0.03; //offset of 30mm => the wall between mic and rest of the board
+double d_offset = 0.050; //offset of 30mm => the wall between mic and rest of the board
 
 void vectPrint(vector v) {
     Serial.print("Vector: ");
@@ -399,7 +399,7 @@ void loop() {
                 dp = sbuf.toDouble() + d_offset;
                 Serial.println("Point 1 set");
                 Serial.print(" Distance is ");
-                Serial.println(dc,4);
+                Serial.println(dp,4);
                 Serial.println(sbuf);
                 mySerial.write('O');
                 lasGetB( TO, buf, BUFSIZE );
@@ -459,6 +459,7 @@ void loop() {
 
     // otherwise, check for DMP data ready interrupt (this should happen frequently)
     } else if (mpuIntStatus & 0x02) {
+        delay(5);
         // wait for correct available data length, should be a VERY short wait
         while (fifoCount < packetSize) fifoCount = mpu.getFIFOCount();
 
