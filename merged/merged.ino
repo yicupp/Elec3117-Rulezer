@@ -23,6 +23,8 @@ SoftwareSerial mySerial(10,11);  //RX,TX
 MPU6050 mpu;
 
 #define LED_PIN 13 // (Arduino is 13, Teensy is 11, Teensy++ is 6)
+#define MPU_STAB_TIME 7500 //stabilissation time for mpu in ms
+
 bool blinkState = false;
 
 // MPU control/status vars
@@ -167,6 +169,13 @@ int keypadRead(int sclpin, int sdopin){
     return key;
 }
 
+void mpuReset() {
+    // reset so we can continue cleanly
+    mpu.resetFIFO();
+    Serial.println(F("FIFO reset"));
+    delay(5);
+}
+
 // ================================================================
 // ===               INTERRUPT DETECTION ROUTINE                ===
 // ================================================================
@@ -202,10 +211,10 @@ void setup() {
     Serial.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed"));
 
     // wait for ready
-    Serial.println(F("\nSend any character to begin DMP programming and demo: "));
+/*    Serial.println(F("\nSend any character to begin DMP programming and demo: "));
     while (Serial.available() && Serial.read()); // empty buffer
     while (!Serial.available());                 // wait for data
-    while (Serial.available() && Serial.read()); // empty buffer again
+    while (Serial.available() && Serial.read()); // empty buffer again*/
 
     // load and configure the DMP
     Serial.println(F("Initializing DMP..."));
@@ -255,9 +264,21 @@ void setup() {
     mySerial.begin(19200);  
  
     Serial.println("");
-    Serial.println("3117 YEEEEEEEEEEEEEEET\n");
+    Serial.println("3117  YEEEEEEEEEEEEEEET\n");
     Serial.println("***********************************************\n");
     Serial.println("");    
+    Serial.print("Waiting for MPU to stabilise for ");
+    Serial.print(MPU_STAB_TIME);
+    Serial.println(" ms");
+    unsigned long stab_start_t = millis();
+    while(millis() - stab_start_t < MPU_STAB_TIME) {
+        /*mpu.getFIFOBytes(fifoBuffer, packetSize); 
+        mpu.dmpGetQuaternion(&q, fifoBuffer);
+        mpu.dmpGetGravity(&gravity, &q);
+        mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);*/
+    }
+    Serial.println("Start YEEEEEEEEEEEEEEET\n");
+    Serial.println("***********************************************\n");
 }
 
 
@@ -284,6 +305,25 @@ void loop() {
             keyNum = keyPress;
             Serial.print(F("Detected key press on key "));
             Serial.println(keyPress); 
+            switch(keyPress) {
+                case 1 : cmd = 'O'; break;
+                case 2 : cmd = 'C'; break;
+                case 3 : cmd = 'S'; break;
+                case 4 : cmd = 'U'; break;
+                case 5 : cmd = 'I'; break;
+                case 6 : cmd = 'I'; break;
+                case 7 : cmd = 'I'; break;
+                case 8 : cmd = 'V'; break;
+                case 9 : cmd = 'I'; break;
+                case 10: cmd = 'I'; break;
+                case 11: cmd = 'I'; break;
+                case 12: cmd = 'K'; break;
+                case 13: cmd = 'I'; break;
+                case 14: cmd = 'D'; break;
+                case 15: cmd = 'A'; break;
+                case 16: cmd = 'P'; break;
+                case 0 : cmd = 'I'; break;
+            }
         }
         //delay(100);
 //        Serial.println(keyPress);
@@ -326,6 +366,7 @@ void loop() {
                 Serial.print(buf);
             break;
             case 'P' :
+                mpuReset();
                 vectGet(&vc);
                 vectPrint(vc);
                 mySerial.write('D');
@@ -347,6 +388,7 @@ void loop() {
             help();
             break;
             case 'U' :
+                mpuReset();
                 vectGet(&vp);
                 vectPrint(vp);
                 mySerial.write('D');
@@ -355,6 +397,7 @@ void loop() {
                 lasGetB( TO, buf, BUFSIZE );
                 sbuf = String(findDigit(buf));
                 dp = sbuf.toDouble() + d_offset;
+                Serial.println("Point 1 set");
                 Serial.print(" Distance is ");
                 Serial.println(dc,4);
                 Serial.println(sbuf);
@@ -364,6 +407,7 @@ void loop() {
 
             break;
             case 'V' :
+                mpuReset();
                 vectGet(&vc);
                 vectPrint(vc);
                 mySerial.write('D');
@@ -372,6 +416,7 @@ void loop() {
                 lasGetB( TO, buf, BUFSIZE );
                 sbuf = String(findDigit(buf));
                 dc = sbuf.toDouble() + d_offset;
+                Serial.println("Point 2 set");
                 Serial.print(" Distance is ");
                 Serial.println(dc,4);
                 Serial.println(sbuf);
@@ -406,10 +451,11 @@ void loop() {
     fifoCount = mpu.getFIFOCount();
 
     // check for overflow (this should never happen unless our code is too inefficient)
-    if ((mpuIntStatus & 0x10) || fifoCount == 1024) {
+//    if ((mpuIntStatus & 0x10) || fifoCount == 1024) {
+    if ((mpuIntStatus & 0x10) || fifoCount >= 128) {
         // reset so we can continue cleanly
         mpu.resetFIFO();
-//        Serial.println(F("FIFO overflow!"));
+        Serial.println(F("FIFO overflow!"));
 
     // otherwise, check for DMP data ready interrupt (this should happen frequently)
     } else if (mpuIntStatus & 0x02) {
