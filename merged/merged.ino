@@ -8,6 +8,8 @@
 #define TO  5000000
 #define BUFSIZE 50
 #define ACC_RANGE 16384
+//#define DEBUG_MPU
+#define DEBUG_FAST_START
 
 SoftwareSerial mySerial(10,11);  //RX,TX
 
@@ -23,7 +25,12 @@ SoftwareSerial mySerial(10,11);  //RX,TX
 MPU6050 mpu;
 
 #define LED_PIN 13 // (Arduino is 13, Teensy is 11, Teensy++ is 6)
-#define MPU_STAB_TIME 7500 //stabilissation time for mpu in ms
+
+#ifdef DEBUG_FAST_START
+#define MPU_STAB_TIME 500 //stabilissation time for mpu in ms
+#else 
+#define MPU_STAB_TIME 10000
+#endif
 
 bool blinkState = false;
 
@@ -42,6 +49,9 @@ int keyNum = 0;
 int keyPress = 0;
 int showVect = -1;
 int showFifoReset = -1;
+unsigned long runtimeSec = 0;
+unsigned long runtimeStart = 0;
+
 
 // orientation/motion vars
 Quaternion q;           // [w, x, y, z]         quaternion container
@@ -180,6 +190,10 @@ void mpuReset() {
 
 void mpuGetData() {
 // get current FIFO count
+#ifdef DEBUG_MPU
+    Serial.println("get data start");
+#endif
+    
     fifoCount = mpu.getFIFOCount();
 
     // clean buffer
@@ -191,11 +205,14 @@ void mpuGetData() {
     // wait for correct available data length, should be a VERY short wait
     while (fifoCount < packetSize) fifoCount = mpu.getFIFOCount();
     // read a packet from FIFO
+#ifdef DEBUG_MPU
+        Serial.println("Reading data packet");
+#endif
         mpu.getFIFOBytes(fifoBuffer, packetSize);
         
         // track FIFO count here in case there is > 1 packet available
         // (this lets us immediately read more without waiting for an interrupt)
-        fifoCount -= packetSize; 
+        //fifoCount -= packetSize; 
                
         // display Euler angles in degrees
         mpu.dmpGetQuaternion(&q, fifoBuffer);
@@ -218,7 +235,9 @@ void mpuGetData() {
         // blink LED to indicate activity
         blinkState = !blinkState;
         digitalWrite(LED_PIN, blinkState);    
-    
+#ifdef MPU_DEBUG
+        Serial.println("Get data stop");
+#endif
 }
 
 // ================================================================
@@ -321,6 +340,8 @@ void setup() {
     }
     Serial.println("Start YEEEEEEEEEEEEEEET\n");
     Serial.println("***********************************************\n");
+    runtimeStart = millis();
+    runtimeSec = millis();
 }
 
 
@@ -330,12 +351,16 @@ void setup() {
 // ================================================================
 
 void loop() {
-    // if programming failed, don't try to do anything
-    if (!dmpReady) return;
-
+   
     // wait for MPU interrupt or extra packet(s) available
     //while (!mpuInterrupt && fifoCount < packetSize) {
     while(1){
+        if(millis() - runtimeSec > 1000) {
+            Serial.print(F("Device is alive for "));
+            Serial.print((millis()-runtimeStart)/1000);
+            Serial.println(" ms in the loop");
+            runtimeSec = millis();
+        }
         // other program behavior stuff here
         // listen for user input 
         if ( Serial.available() ) 
@@ -425,6 +450,9 @@ void loop() {
                 Serial.println("Toggled Fifo reset display");                
             break;
             case 'I' :
+#ifdef DEBUG_MPU
+                Serial.println("Command I");
+#endif
                 mpuReset();
                 mpuGetData();
                 vectGet(&v);
