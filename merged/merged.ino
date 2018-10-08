@@ -40,6 +40,8 @@ uint8_t fifoBuffer[64]; // FIFO storage buffer
 #define KP_SCLPIN 8
 int keyNum = 0;
 int keyPress = 0;
+int showVect = -1;
+int showFifoReset = -1;
 
 // orientation/motion vars
 Quaternion q;           // [w, x, y, z]         quaternion container
@@ -172,8 +174,51 @@ int keypadRead(int sclpin, int sdopin){
 void mpuReset() {
     // reset so we can continue cleanly
     mpu.resetFIFO();
-    Serial.println(F("FIFO reset"));
+    if(showFifoReset == 1) Serial.println(F("FIFO reset"));
     delay(5);
+}
+
+void mpuGetData() {
+// get current FIFO count
+    fifoCount = mpu.getFIFOCount();
+
+    // clean buffer
+    if (fifoCount > packetSize) {
+        // reset so we can continue cleanly
+        mpu.resetFIFO();
+        delay(5);
+    }
+    // wait for correct available data length, should be a VERY short wait
+    while (fifoCount < packetSize) fifoCount = mpu.getFIFOCount();
+    // read a packet from FIFO
+        mpu.getFIFOBytes(fifoBuffer, packetSize);
+        
+        // track FIFO count here in case there is > 1 packet available
+        // (this lets us immediately read more without waiting for an interrupt)
+        fifoCount -= packetSize; 
+               
+        // display Euler angles in degrees
+        mpu.dmpGetQuaternion(&q, fifoBuffer);
+        mpu.dmpGetGravity(&gravity, &q);
+        mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
+        myYaw = ypr[0];
+        myPitch = ypr[1];
+        myRoll = ypr[2];
+        vx = cos(myYaw)*cos(myPitch);
+        vy = sin(myYaw)*cos(myPitch);
+        vz = sin(myPitch);
+
+//            Serial.print("xyz\t");
+//            Serial.print(vx);
+//            Serial.print("\t");
+//            Serial.print(vy);
+//            Serial.print("\t");
+//            Serial.println(vz);
+        
+        // blink LED to indicate activity
+        blinkState = !blinkState;
+        digitalWrite(LED_PIN, blinkState);    
+    
 }
 
 // ================================================================
@@ -272,10 +317,7 @@ void setup() {
     Serial.println(" ms");
     unsigned long stab_start_t = millis();
     while(millis() - stab_start_t < MPU_STAB_TIME) {
-        /*mpu.getFIFOBytes(fifoBuffer, packetSize); 
-        mpu.dmpGetQuaternion(&q, fifoBuffer);
-        mpu.dmpGetGravity(&gravity, &q);
-        mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);*/
+        mpuGetData();
     }
     Serial.println("Start YEEEEEEEEEEEEEEET\n");
     Serial.println("***********************************************\n");
@@ -292,7 +334,8 @@ void loop() {
     if (!dmpReady) return;
 
     // wait for MPU interrupt or extra packet(s) available
-    while (!mpuInterrupt && fifoCount < packetSize) {
+    //while (!mpuInterrupt && fifoCount < packetSize) {
+    while(1){
         // other program behavior stuff here
         // listen for user input 
         if ( Serial.available() ) 
@@ -305,14 +348,14 @@ void loop() {
             keyNum = keyPress;
             Serial.print(F("Detected key press on key "));
             Serial.println(keyPress); 
-            switch(keyPress) {
+            switch(keyNum) {
                 case 1 : cmd = 'O'; break;
                 case 2 : cmd = 'C'; break;
                 case 3 : cmd = 'S'; break;
                 case 4 : cmd = 'U'; break;
-                case 5 : cmd = 'I'; break;
-                case 6 : cmd = 'I'; break;
-                case 7 : cmd = 'I'; break;
+                case 5 : cmd = 'T'; break;
+                case 6 : cmd = 'G'; break;
+                case 7 : cmd = 'G'; break;
                 case 8 : cmd = 'V'; break;
                 case 9 : cmd = 'I'; break;
                 case 10: cmd = 'I'; break;
@@ -366,33 +409,42 @@ void loop() {
                 Serial.print(buf);
             break;
             case 'P' :
-                mpuReset();
+//                mpuReset();
+                mySerial.write('D');    
+
+                lasGetB( TO, buf, BUFSIZE );
                 vectGet(&vc);
                 vectPrint(vc);
-                mySerial.write('D');
-                lasGetB( TO, buf, BUFSIZE );
+                mpuGetData();
                 Serial.print(buf);
                 lasGetB( TO, buf, BUFSIZE );
                 Serial.print(buf);
             break;
             case 'G' :
-                
+                showFifoReset *= -1;
+                Serial.println("Toggled Fifo reset display");                
             break;
             case 'I' :
-                
+                mpuReset();
+                mpuGetData();
+                vectGet(&v);
+                if(showVect == 1) vectPrint(v);                
             break;
             case 'T' :
-                
+                showVect = showVect * -1;
+                Serial.println("Toggled vector display");
             break;
             case 'H' :
-            help();
+                help();
             break;
             case 'U' :
-                mpuReset();
+                mpuReset();                
+                mySerial.write('D');
+                
+                lasGetB( TO, buf, BUFSIZE );
+                mpuGetData();
                 vectGet(&vp);
                 vectPrint(vp);
-                mySerial.write('D');
-                lasGetB( TO, buf, BUFSIZE );
                 Serial.print(buf);
                 lasGetB( TO, buf, BUFSIZE );
                 sbuf = String(findDigit(buf));
@@ -407,11 +459,13 @@ void loop() {
 
             break;
             case 'V' :
-                mpuReset();
+                mpuReset();                
+                mySerial.write('D');
+                
+                lasGetB( TO, buf, BUFSIZE );
+                mpuGetData();
                 vectGet(&vc);
                 vectPrint(vc);
-                mySerial.write('D');
-                lasGetB( TO, buf, BUFSIZE );
                 Serial.print(buf);
                 lasGetB( TO, buf, BUFSIZE );
                 sbuf = String(findDigit(buf));
@@ -426,6 +480,8 @@ void loop() {
 
             break;
             case 'A' :
+                mpuReset();
+                mpuGetData();
                 vectGet(&v);
                 vectPrint(v);        
             break;
@@ -441,55 +497,6 @@ void loop() {
     
         }
         cmd = 'I';
-    }
-
-    // reset interrupt flag and get INT_STATUS byte
-    mpuInterrupt = false;
-    mpuIntStatus = mpu.getIntStatus();
-
-    // get current FIFO count
-    fifoCount = mpu.getFIFOCount();
-
-    // check for overflow (this should never happen unless our code is too inefficient)
-//    if ((mpuIntStatus & 0x10) || fifoCount == 1024) {
-    if ((mpuIntStatus & 0x10) || fifoCount >= 128) {
-        // reset so we can continue cleanly
-        mpu.resetFIFO();
-        Serial.println(F("FIFO overflow!"));
-
-    // otherwise, check for DMP data ready interrupt (this should happen frequently)
-    } else if (mpuIntStatus & 0x02) {
-        delay(5);
-        // wait for correct available data length, should be a VERY short wait
-        while (fifoCount < packetSize) fifoCount = mpu.getFIFOCount();
-
-        // read a packet from FIFO
-        mpu.getFIFOBytes(fifoBuffer, packetSize);
-        
-        // track FIFO count here in case there is > 1 packet available
-        // (this lets us immediately read more without waiting for an interrupt)
-        fifoCount -= packetSize;
-        
-            // display Euler angles in degrees
-            mpu.dmpGetQuaternion(&q, fifoBuffer);
-            mpu.dmpGetGravity(&gravity, &q);
-            mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
-            myYaw = ypr[0];
-            myPitch = ypr[1];
-            myRoll = ypr[2];
-            vx = cos(myYaw)*cos(myPitch);
-            vy = sin(myYaw)*cos(myPitch);
-            vz = sin(myPitch);
-
-//            Serial.print("xyz\t");
-//            Serial.print(vx);
-//            Serial.print("\t");
-//            Serial.print(vy);
-//            Serial.print("\t");
-//            Serial.println(vz);
-        
-        // blink LED to indicate activity
-        blinkState = !blinkState;
-        digitalWrite(LED_PIN, blinkState);
-    }
+//        cmd = 'A';
+    }    
 }
