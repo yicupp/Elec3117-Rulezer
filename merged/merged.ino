@@ -357,7 +357,7 @@ void loop() {
     while(1){
         if(millis() - runtimeSec > 1000) {
             Serial.print(F("Device is alive for "));
-            Serial.print((millis()-runtimeStart)/1000);
+            Serial.print((millis()-runtimeStart));
             Serial.println(" ms in the loop");
             runtimeSec = millis();
         }
@@ -385,11 +385,11 @@ void loop() {
                 case 9 : cmd = 'I'; break;
                 case 10: cmd = 'I'; break;
                 case 11: cmd = 'I'; break;
-                case 12: cmd = 'K'; break;
-                case 13: cmd = 'I'; break;
-                case 14: cmd = 'D'; break;
-                case 15: cmd = 'A'; break;
-                case 16: cmd = 'P'; break;
+                case 12: cmd = 'V'; break;
+                case 13: cmd = 'D'; break;
+                case 14: cmd = 'A'; break;
+                case 15: cmd = 'K'; break;
+                case 16: cmd = 'U'; break;
                 case 0 : cmd = 'I'; break;
             }
         }
