@@ -1,3 +1,52 @@
+//LCD touchscreen
+#include <Adafruit_GFX.h>    // Core graphics library
+#include <Adafruit_TFTLCD.h> // Hardware-specific library
+#include <TouchScreen.h>
+
+#define YP A3  // must be an analog pin, use "An" notation!
+#define XM A2  // must be an analog pin, use "An" notation!
+#define YM 9   // can be a digital pin
+#define XP 8   // can be a digital pin
+
+#define TS_MINX 100
+#define TS_MAXX 920
+
+#define TS_MINY 70
+#define TS_MAXY 900
+/*
+#define TS_MINX 125
+#define TS_MAXX 913
+
+#define TS_MINY 118
+#define TS_MAXY 833*/
+// For better pressure precision, we need to know the resistance
+// between X+ and X- Use any multimeter to read it
+// For the one we're using, its 300 ohms across the X plate
+TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
+
+#define LCD_CS A3
+#define LCD_CD A2
+#define LCD_WR A1
+#define LCD_RD A0
+// optional
+#define LCD_RESET 12
+
+// Assign human-readable names to some common 16-bit color values:
+#define    BLACK   0x0000
+#define BLUE    0x001F
+#define RED     0xF800
+#define GREEN   0x07E0
+#define CYAN    0x07FF
+#define MAGENTA 0xF81F
+#define YELLOW  0xFFE0
+#define WHITE   0xFFFF
+
+#include <MCUFRIEND_kbv.h>
+MCUFRIEND_kbv tft;
+
+#define BOXSIZE 40
+#define PENRADIUS 3
+
 //LIDAR
 //LIDAR values
 
@@ -240,14 +289,24 @@ void mpuGetData() {
 #endif
 }
 
-// ================================================================
-// ===               INTERRUPT DETECTION ROUTINE                ===
-// ================================================================
+// LCD and touch functions
+// 
+//
 
-volatile bool mpuInterrupt = false;     // indicates whether MPU interrupt pin has gone high
-void dmpDataReady() {
-    mpuInterrupt = true;
+void lcd_init() {
+    Serial.println(F("Initialising LCD"));    
+    tft.reset();
+    uint16_t identifier = tft.readID();
+    tft.begin(identifier);
+    tft.setRotation(0);
+    tft.fillScreen(BLACK);
+    delay(100);
+    tft.fillRect(0, 0, BOXSIZE, BOXSIZE, RED);
+    delay(100);
+    tft.drawRect(0, 0, BOXSIZE, BOXSIZE, WHITE);
+    delay(100);
 }
+
 
 // ================================================================
 // ===                      INITIAL SETUP                       ===
@@ -296,15 +355,6 @@ void setup() {
         Serial.println(F("Enabling DMP..."));
         mpu.setDMPEnabled(true);
 
-        // enable Arduino interrupt detection
-        Serial.println(F("Enabling interrupt detection (Arduino external interrupt 0)..."));
-        attachInterrupt(0, dmpDataReady, RISING);
-        mpuIntStatus = mpu.getIntStatus();
-
-        // set our DMP Ready flag so the main loop() function knows it's okay to use it
-        Serial.println(F("DMP ready! Waiting for first interrupt..."));
-        dmpReady = true;
-
         // get expected DMP packet size for later comparison
         packetSize = mpu.dmpGetFIFOPacketSize();
     } else {
@@ -328,20 +378,22 @@ void setup() {
     mySerial.begin(19200);  
  
     Serial.println("");
-    Serial.println("3117  YEEEEEEEEEEEEEEET\n");
-    Serial.println("***********************************************\n");
+    Serial.println(F("3117  YEEEEEEEEEEEEEEET\n"));
+    Serial.println(F("***********************************************\n"));
     Serial.println("");    
-    Serial.print("Waiting for MPU to stabilise for ");
-    Serial.print(MPU_STAB_TIME);
-    Serial.println(" ms");
+    Serial.println(F("Initialising LCD"));
+    lcd_init();
     unsigned long stab_start_t = millis();
+    Serial.print(F("Waiting for MPU to stabilise for "));
+    Serial.print(MPU_STAB_TIME);
+    Serial.println(F(" ms"));
     while(millis() - stab_start_t < MPU_STAB_TIME) {
         mpuReset();
         mpuGetData();
         vectGet(&v);
     }
-    Serial.println("Start YEEEEEEEEEEEEEEET\n");
-    Serial.println("***********************************************\n");
+    Serial.println(F("Start YEEEEEEEEEEEEEEET\n"));
+    Serial.println(F("***********************************************\n"));
     runtimeStart = millis();
     runtimeSec = millis();
 }
@@ -357,6 +409,7 @@ void loop() {
     // wait for MPU interrupt or extra packet(s) available
     //while (!mpuInterrupt && fifoCount < packetSize) {
     while(1){
+        TSPoint p = ts.getPoint();
         if(millis() - runtimeSec > 1000) {
             Serial.print(F("Device is alive for "));
             Serial.print((millis()-runtimeStart));
