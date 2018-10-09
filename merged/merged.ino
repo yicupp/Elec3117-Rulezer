@@ -9,7 +9,7 @@
 #define BUFSIZE 50
 #define ACC_RANGE 16384
 //#define DEBUG_MPU
-#define DEBUG_FAST_START
+//#define DEBUG_FAST_START
 
 SoftwareSerial mySerial(10,11);  //RX,TX
 
@@ -336,7 +336,9 @@ void setup() {
     Serial.println(" ms");
     unsigned long stab_start_t = millis();
     while(millis() - stab_start_t < MPU_STAB_TIME) {
+        mpuReset();
         mpuGetData();
+        vectGet(&v);
     }
     Serial.println("Start YEEEEEEEEEEEEEEET\n");
     Serial.println("***********************************************\n");
@@ -360,6 +362,11 @@ void loop() {
             Serial.print((millis()-runtimeStart));
             Serial.println(" ms in the loop");
             runtimeSec = millis();
+            mpuReset();
+            mpuGetData();
+            vectGet(&v);
+            vectPrint(v); 
+            
         }
         // other program behavior stuff here
         // listen for user input 
@@ -369,6 +376,7 @@ void loop() {
         }
 
         keyPress = keypadRead(KP_SCLPIN,KP_SDOPIN);
+        /*
         if(keyPress != keyNum) {
             keyNum = keyPress;
             Serial.print(F("Detected key press on key "));
@@ -392,7 +400,7 @@ void loop() {
                 case 16: cmd = 'U'; break;
                 case 0 : cmd = 'I'; break;
             }
-        }
+        }*/
         //delay(100);
 //        Serial.println(keyPress);
         
