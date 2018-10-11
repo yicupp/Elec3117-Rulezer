@@ -214,28 +214,7 @@ char *findDigit(char *str) {
     return str;
 }
 
-int keypadRead(int sclpin, int sdopin){ 
-    //returns key number or 0 if no key PRESSED
-    int key = 0; //default to no keys pressed 
-    pinMode(KP_SCLPIN,OUTPUT);
-    digitalWrite(KP_SCLPIN,HIGH);
-    pinMode(KP_SDOPIN,INPUT);
-    delay(5);
 
-    for(int i=1; i<17; i++) {
-        digitalWrite(KP_SCLPIN, LOW);
-        digitalWrite(KP_SCLPIN,HIGH);
-        if(!digitalRead(KP_SDOPIN)){key=i;}
-    }
-    return key;
-}
-
-void mpuReset() {
-    // reset so we can continue cleanly
-    mpu.resetFIFO();
-    if(showFifoReset == 1) Serial.println(F("FIFO reset"));
-    delay(5);
-}
 
 void mpuGetData() {
 // get current FIFO count
@@ -296,8 +275,7 @@ void mpuGetData() {
 void lcd_init() {
     Serial.println(F("Initialising LCD"));    
     tft.reset();
-    uint16_t identifier = tft.readID();
-    tft.begin(identifier);
+    tft.begin(0x9341);
     tft.setRotation(0);
     tft.fillScreen(BLACK);
     delay(100);
@@ -305,6 +283,7 @@ void lcd_init() {
     delay(100);
     tft.drawRect(0, 0, BOXSIZE, BOXSIZE, WHITE);
     delay(100);
+    tft.println("Hello World!");
 }
 
 
@@ -322,7 +301,7 @@ void setup() {
     #endif
 
     // initialize serial communication
-    Serial.begin(115200);
+    Serial.begin(19200);
     while (!Serial); // wait for Leonardo enumeration, others continue immediately
 
     // initialize device
@@ -388,7 +367,7 @@ void setup() {
     Serial.print(MPU_STAB_TIME);
     Serial.println(F(" ms"));
     while(millis() - stab_start_t < MPU_STAB_TIME) {
-        mpuReset();
+        mpu.resetFIFO();
         mpuGetData();
         vectGet(&v);
     }
@@ -415,7 +394,7 @@ void loop() {
             Serial.print((millis()-runtimeStart));
             Serial.println(" ms in the loop");
             runtimeSec = millis();
-            mpuReset();
+            mpu.resetFIFO();delay(5);;
             mpuGetData();
             vectGet(&v);
             vectPrint(v); 
@@ -427,35 +406,6 @@ void loop() {
         {
             cmd = Serial.read();
         }
-
-        keyPress = keypadRead(KP_SCLPIN,KP_SDOPIN);
-        /*
-        if(keyPress != keyNum) {
-            keyNum = keyPress;
-            Serial.print(F("Detected key press on key "));
-            Serial.println(keyPress); 
-            switch(keyNum) {
-                case 1 : cmd = 'O'; break;
-                case 2 : cmd = 'C'; break;
-                case 3 : cmd = 'S'; break;
-                case 4 : cmd = 'U'; break;
-                case 5 : cmd = 'T'; break;
-                case 6 : cmd = 'G'; break;
-                case 7 : cmd = 'G'; break;
-                case 8 : cmd = 'V'; break;
-                case 9 : cmd = 'I'; break;
-                case 10: cmd = 'I'; break;
-                case 11: cmd = 'I'; break;
-                case 12: cmd = 'V'; break;
-                case 13: cmd = 'D'; break;
-                case 14: cmd = 'A'; break;
-                case 15: cmd = 'K'; break;
-                case 16: cmd = 'U'; break;
-                case 0 : cmd = 'I'; break;
-            }
-        }*/
-        //delay(100);
-//        Serial.println(keyPress);
         
         switch(cmd) {
             case 'O' : 
@@ -495,7 +445,7 @@ void loop() {
                 Serial.print(buf);
             break;
             case 'P' :
-//                mpuReset();
+//                mpu.resetFIFO();delay(5);;
                 mySerial.write('D');    
 
                 lasGetB( TO, buf, BUFSIZE );
@@ -514,7 +464,7 @@ void loop() {
 #ifdef DEBUG_MPU
                 Serial.println("Command I");
 #endif
-                mpuReset();
+                mpu.resetFIFO();delay(5);;
                 mpuGetData();
                 vectGet(&v);
                 if(showVect == 1) vectPrint(v);                
@@ -527,7 +477,7 @@ void loop() {
                 help();
             break;
             case 'U' :
-                mpuReset();                
+                mpu.resetFIFO();delay(5);;                
                 mySerial.write('D');
                 
                 lasGetB( TO, buf, BUFSIZE );
@@ -548,7 +498,7 @@ void loop() {
 
             break;
             case 'V' :
-                mpuReset();                
+                mpu.resetFIFO();delay(5);;                
                 mySerial.write('D');
                 
                 lasGetB( TO, buf, BUFSIZE );
@@ -569,7 +519,7 @@ void loop() {
 
             break;
             case 'A' :
-                mpuReset();
+                mpu.resetFIFO();delay(5);;
                 mpuGetData();
                 vectGet(&v);
                 vectPrint(v);        
