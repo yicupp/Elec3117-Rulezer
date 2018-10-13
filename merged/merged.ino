@@ -1,24 +1,27 @@
 //LCD touchscreen
+// Paint example specifically for the TFTLCD breakout board.
+// If using the Arduino shield, use the tftpaint_shield.pde sketch instead!
+// DOES NOT CURRENTLY WORK ON ARDUINO LEONARDO
+
 #include <Adafruit_GFX.h>    // Core graphics library
 #include <Adafruit_TFTLCD.h> // Hardware-specific library
 #include <TouchScreen.h>
+
+#if defined(__SAM3X8E__)
+    #undef __FlashStringHelper::F(string_literal)
+    #define F(string_literal) string_literal
+#endif
 
 #define YP A3  // must be an analog pin, use "An" notation!
 #define XM A2  // must be an analog pin, use "An" notation!
 #define YM 9   // can be a digital pin
 #define XP 8   // can be a digital pin
 
-#define TS_MINX 100
+#define TS_MINX 150
+#define TS_MINY 120
 #define TS_MAXX 920
+#define TS_MAXY 940
 
-#define TS_MINY 70
-#define TS_MAXY 900
-/*
-#define TS_MINX 125
-#define TS_MAXX 913
-
-#define TS_MINY 118
-#define TS_MAXY 833*/
 // For better pressure precision, we need to know the resistance
 // between X+ and X- Use any multimeter to read it
 // For the one we're using, its 300 ohms across the X plate
@@ -29,7 +32,7 @@ TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
 #define LCD_WR A1
 #define LCD_RD A0
 // optional
-#define LCD_RESET 12
+#define LCD_RESET 13
 
 // Assign human-readable names to some common 16-bit color values:
 #define    BLACK   0x0000
@@ -40,12 +43,14 @@ TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
 #define MAGENTA 0xF81F
 #define YELLOW  0xFFE0
 #define WHITE   0xFFFF
-
 #include <MCUFRIEND_kbv.h>
 MCUFRIEND_kbv tft;
 
+//Adafruit_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
+
 #define BOXSIZE 40
 #define PENRADIUS 3
+int oldcolor, currentcolor;
 
 //LIDAR
 //LIDAR values
@@ -58,7 +63,7 @@ MCUFRIEND_kbv tft;
 #define BUFSIZE 50
 #define ACC_RANGE 16384
 //#define DEBUG_MPU
-//#define DEBUG_FAST_START
+#define DEBUG_FAST_START
 
 SoftwareSerial mySerial(10,11);  //RX,TX
 
@@ -132,6 +137,7 @@ void vectPrint(vector v) {
     Serial.print(v.y,4);
     Serial.print(", z = ");
     Serial.println(v.z,4);
+    //tft.println("Vector: ");
 }
 
 double vectDP(vector a, vector b) {
@@ -223,12 +229,13 @@ void mpuGetData() {
 #endif
     
     fifoCount = mpu.getFIFOCount();
-
+    mpu.resetFIFO();
+    delay(5);
     // clean buffer
     if (fifoCount > packetSize) {
         // reset so we can continue cleanly
         mpu.resetFIFO();
-        delay(5);
+        delay(25);
     }
     // wait for correct available data length, should be a VERY short wait
     while (fifoCount < packetSize) fifoCount = mpu.getFIFOCount();
@@ -262,7 +269,7 @@ void mpuGetData() {
         
         // blink LED to indicate activity
         blinkState = !blinkState;
-        digitalWrite(LED_PIN, blinkState);    
+        //digitalWrite(LED_PIN, blinkState);    
 #ifdef MPU_DEBUG
         Serial.println("Get data stop");
 #endif
@@ -273,17 +280,34 @@ void mpuGetData() {
 //
 
 void lcd_init() {
-    Serial.println(F("Initialising LCD"));    
-    tft.reset();
-    tft.begin(0x9341);
-    tft.setRotation(0);
+    Serial.println(F("Initialising LCD FUNCTION"));    
+    
+    
+    
+    tft.begin(0x8230);
+
+    tft.fillScreen(BLACK);
+    tft.setRotation(1);
     tft.fillScreen(BLACK);
     delay(100);
-    tft.fillRect(0, 0, BOXSIZE, BOXSIZE, RED);
+    //tft.fillRect(0, 0, BOXSIZE, BOXSIZE, RED);
     delay(100);
-    tft.drawRect(0, 0, BOXSIZE, BOXSIZE, WHITE);
+    //tft.drawRect(0, 0, BOXSIZE, BOXSIZE, WHITE);
     delay(100);
+    tft.setTextColor(GREEN);
+    tft.setTextSize(3);
     tft.println("Hello World!");
+    //tft.fillRect(0, 0, BOXSIZE, BOXSIZE, RED);
+    tft.fillRect(320-BOXSIZE*2, 0, BOXSIZE, BOXSIZE, YELLOW);
+    tft.fillRect(320-BOXSIZE*2, BOXSIZE, BOXSIZE*2, BOXSIZE, GREEN);
+    tft.fillRect(320-BOXSIZE*2, BOXSIZE*2, BOXSIZE*2, BOXSIZE, CYAN);
+    tft.fillRect(320-BOXSIZE*2, BOXSIZE*3, BOXSIZE*2, BOXSIZE, BLUE);
+    tft.fillRect(320-BOXSIZE*2, BOXSIZE*4, BOXSIZE*2, BOXSIZE, MAGENTA);
+    tft.fillRect(320-BOXSIZE*2, BOXSIZE*5, BOXSIZE*2, BOXSIZE, WHITE);
+ 
+  //tft.drawRect(0, 0, BOXSIZE, BOXSIZE, WHITE);
+  tft.println("Hello World!");
+  currentcolor = RED;
 }
 
 
@@ -347,7 +371,7 @@ void setup() {
     }
 
     // configure LED for output
-    pinMode(LED_PIN, OUTPUT);
+    //pinMode(LED_PIN, OUTPUT);
 
     //Init serial communication
  
@@ -398,7 +422,8 @@ void loop() {
             mpuGetData();
             vectGet(&v);
             vectPrint(v); 
-            
+            tft.println("Hello World!");
+            delay(1000);
         }
         // other program behavior stuff here
         // listen for user input 
@@ -481,7 +506,7 @@ void loop() {
                 mySerial.write('D');
                 
                 lasGetB( TO, buf, BUFSIZE );
-                mpuGetData();
+                //mpuGetData();
                 vectGet(&vp);
                 vectPrint(vp);
                 Serial.print(buf);
@@ -502,7 +527,7 @@ void loop() {
                 mySerial.write('D');
                 
                 lasGetB( TO, buf, BUFSIZE );
-                mpuGetData();
+                //mpuGetData();
                 vectGet(&vc);
                 vectPrint(vc);
                 Serial.print(buf);
