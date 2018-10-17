@@ -36,12 +36,12 @@ TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
 
 // Assign human-readable names to some common 16-bit color values:
 #define    BLACK   0x0000
-#define BLUE    0x001F
-#define RED     0xF800
+#define RED    0x001F
+#define BLUE     0xF800
 #define GREEN   0x07E0
-#define CYAN    0x07FF
+#define YELLOW    0x07FF
 #define MAGENTA 0xF81F
-#define YELLOW  0xFFE0
+#define CYAN  0xFFE0
 #define WHITE   0xFFFF
 #include <MCUFRIEND_kbv.h>
 MCUFRIEND_kbv tft;
@@ -127,9 +127,46 @@ struct vector {
 };
 
 double d = 0;
-double d_offset = 0.050; //offset of 30mm => the wall between mic and rest of the board
+double d_offset = 0.070; //offset of 30mm => the wall between mic and rest of the board
+
+#define lcdVectx1   20
+#define lcdVecty1   180
+#define lcdVectx2   200
+#define lcdVecty2   190
+#define lcdVectlx   lcdVectx2-lcdVectx1
+#define lcdVectly   lcdVecty2-lcdVecty1
+#define lcdVectcw   WHITE
+#define lcdVectcb   BLACK
+
+char vectPrintBuf[50];
+char vxStr[7];
+char vyStr[7];
+char vzStr[7];
 
 void vectPrint(vector v) {
+    pinMode(XM, OUTPUT);   //restore mode
+    pinMode(YP, OUTPUT);
+    tft.fillRect(lcdVectx1,lcdVecty1,lcdVectlx,lcdVectly,lcdVectcb);
+    tft.setTextColor(lcdVectcb);
+    tft.setCursor(lcdVectx1,lcdVecty1);
+    tft.print(vectPrintBuf);
+    tft.setTextSize(1);
+
+    dtostrf(v.x,5,4,vxStr);
+    dtostrf(v.y,5,4,vyStr);
+    dtostrf(v.z,5,4,vzStr);
+
+    tft.setTextColor(lcdVectcw);
+    tft.setCursor(lcdVectx1,lcdVecty1);
+    sprintf(vectPrintBuf,"x=%s y=%s z=%s",vxStr,vyStr,vzStr);
+    tft.print(vectPrintBuf);
+/*    tft.print("x=");
+    tft.print(v.x,4);
+    tft.print(" y=");
+    tft.print(v.y,4);
+    tft.print(" z=");
+    tft.println(v.z,4);*/
+    
     Serial.print("Vector: ");
     Serial.print("x = ");
     Serial.print(v.x,4);
@@ -229,8 +266,8 @@ void mpuGetData() {
 #endif
     
     fifoCount = mpu.getFIFOCount();
-    mpu.resetFIFO();
-    delay(5);
+//    mpu.resetFIFO();
+//    delay(5);
     // clean buffer
     if (fifoCount > packetSize) {
         // reset so we can continue cleanly
@@ -279,6 +316,40 @@ void mpuGetData() {
 // 
 //
 
+struct button {
+    int c;
+    int x1;
+    int x2;
+    int y1;
+    int y2;
+    int lx;
+    int ly;
+};
+
+//button startBut, setBut, resetBut;
+
+#define     startBut_x1   320-BOXSIZE*5/2
+#define     startBut_y1   0
+#define     startBut_x2   320-BOXSIZE*5/2+BOXSIZE*5/2
+#define     startBut_y2   0+BOXSIZE*2
+#define     startBut_lx   BOXSIZE*5/2
+#define     startBut_ly   BOXSIZE*2
+#define     startBut_c    GREEN
+#define     setBut_x1     320-BOXSIZE*5/2
+#define     setBut_y1     BOXSIZE*2
+#define     setBut_x2     320-BOXSIZE*5/2+BOXSIZE*5/2
+#define     setBut_y2     BOXSIZE*2+BOXSIZE*2
+#define     setBut_lx     BOXSIZE*5/2
+#define     setBut_ly     BOXSIZE*2
+#define     setBut_c      BLUE
+#define     resetBut_x1   320-BOXSIZE*5/2
+#define     resetBut_y1   BOXSIZE*4
+#define     resetBut_x2   320-BOXSIZE*5/2+BOXSIZE*5/2
+#define     resetBut_y2   BOXSIZE*4+BOXSIZE*2
+#define     resetBut_lx   BOXSIZE*5/2
+#define     resetBut_ly   BOXSIZE*2
+#define     resetBut_c    RED
+
 void lcd_init() {
     Serial.println(F("Initialising LCD FUNCTION"));    
     
@@ -288,26 +359,38 @@ void lcd_init() {
 
     tft.fillScreen(BLACK);
     tft.setRotation(1);
-    tft.fillScreen(BLACK);
-    delay(100);
-    //tft.fillRect(0, 0, BOXSIZE, BOXSIZE, RED);
-    delay(100);
-    //tft.drawRect(0, 0, BOXSIZE, BOXSIZE, WHITE);
-    delay(100);
     tft.setTextColor(GREEN);
     tft.setTextSize(3);
-    tft.println("Hello World!");
-    //tft.fillRect(0, 0, BOXSIZE, BOXSIZE, RED);
-    tft.fillRect(320-BOXSIZE*2, 0, BOXSIZE, BOXSIZE, YELLOW);
+    tft.println("Rulezer!");
+
+/*    tft.fillRect(320-BOXSIZE*2, 0, BOXSIZE, BOXSIZE*2, YELLOW);
     tft.fillRect(320-BOXSIZE*2, BOXSIZE, BOXSIZE*2, BOXSIZE, GREEN);
     tft.fillRect(320-BOXSIZE*2, BOXSIZE*2, BOXSIZE*2, BOXSIZE, CYAN);
     tft.fillRect(320-BOXSIZE*2, BOXSIZE*3, BOXSIZE*2, BOXSIZE, BLUE);
     tft.fillRect(320-BOXSIZE*2, BOXSIZE*4, BOXSIZE*2, BOXSIZE, MAGENTA);
     tft.fillRect(320-BOXSIZE*2, BOXSIZE*5, BOXSIZE*2, BOXSIZE, WHITE);
- 
-  //tft.drawRect(0, 0, BOXSIZE, BOXSIZE, WHITE);
-  tft.println("Hello World!");
-  currentcolor = RED;
+    */
+
+    tft.fillRect(startBut_x1,startBut_y1,BOXSIZE*5/2 ,BOXSIZE*2 , startBut_c);
+    tft.fillRect(setBut_x1  ,setBut_y1  ,BOXSIZE*5/2 ,BOXSIZE*2 , setBut_c);
+    tft.fillRect(resetBut_x1,resetBut_y1,BOXSIZE*5/2 ,BOXSIZE*2 , resetBut_c);
+
+    tft.setCursor(320-BOXSIZE*2,BOXSIZE*3/4);
+    tft.setTextColor(WHITE);
+    tft.setTextSize(2);
+    tft.print("Start");
+    tft.setCursor(320-BOXSIZE*2,BOXSIZE*11/4);
+    tft.setTextColor(WHITE);
+    tft.setTextSize(2);
+    tft.print(" Set ");
+    tft.setCursor(320-BOXSIZE*2,BOXSIZE*19/4);
+    tft.setTextColor(WHITE);
+    tft.setTextSize(2);
+    tft.print("Reset");
+    
+  //Make ui
+     
+  //currentcolor = RED;
 }
 
 
@@ -413,17 +496,17 @@ void loop() {
     //while (!mpuInterrupt && fifoCount < packetSize) {
     while(1){
         TSPoint p = ts.getPoint();
-        if(millis() - runtimeSec > 1000) {
-            Serial.print(F("Device is alive for "));
-            Serial.print((millis()-runtimeStart));
-            Serial.println(" ms in the loop");
+        if(millis() - runtimeSec > 10) {
+            //Serial.print(F("Device is alive for "));
+            //Serial.print((millis()-runtimeStart));
+            //Serial.println(" ms in the loop");
             runtimeSec = millis();
-            mpu.resetFIFO();delay(5);;
+            //mpu.resetFIFO();//delay(5);;
             mpuGetData();
             vectGet(&v);
             vectPrint(v); 
-            tft.println("Hello World!");
-            delay(1000);
+            //tft.println("Hello World!");
+            //delay(10);
         }
         // other program behavior stuff here
         // listen for user input 
@@ -489,7 +572,7 @@ void loop() {
 #ifdef DEBUG_MPU
                 Serial.println("Command I");
 #endif
-                mpu.resetFIFO();delay(5);;
+                //mpu.resetFIFO();delay(5);;
                 mpuGetData();
                 vectGet(&v);
                 if(showVect == 1) vectPrint(v);                
@@ -544,7 +627,7 @@ void loop() {
 
             break;
             case 'A' :
-                mpu.resetFIFO();delay(5);;
+                //mpu.resetFIFO();delay(5);;
                 mpuGetData();
                 vectGet(&v);
                 vectPrint(v);        
