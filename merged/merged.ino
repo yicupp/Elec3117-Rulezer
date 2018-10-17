@@ -139,25 +139,22 @@ double d_offset = 0.070; //offset of 30mm => the wall between mic and rest of th
 #define lcdVectcb   BLACK
 
 char vectPrintBuf[50];
-char vxStr[7];
-char vyStr[7];
-char vzStr[7];
+char vxStr[10]={'\0'};
+char vyStr[10]={'\0'};
+char vzStr[10]={'\0'};
 
 void vectPrint(vector v) {
     pinMode(XM, OUTPUT);   //restore mode
     pinMode(YP, OUTPUT);
-    tft.fillRect(lcdVectx1,lcdVecty1,lcdVectlx,lcdVectly,lcdVectcb);
-    tft.setTextColor(lcdVectcb);
     tft.setCursor(lcdVectx1,lcdVecty1);
-    tft.print(vectPrintBuf);
+
     tft.setTextSize(1);
 
     dtostrf(v.x,5,4,vxStr);
     dtostrf(v.y,5,4,vyStr);
     dtostrf(v.z,5,4,vzStr);
 
-    tft.setTextColor(lcdVectcw);
-    tft.setCursor(lcdVectx1,lcdVecty1);
+    tft.setTextColor(lcdVectcw,lcdVectcb);
     sprintf(vectPrintBuf,"x=%s y=%s z=%s",vxStr,vyStr,vzStr);
     tft.print(vectPrintBuf);
 /*    tft.print("x=");
@@ -174,7 +171,8 @@ void vectPrint(vector v) {
     Serial.print(v.y,4);
     Serial.print(", z = ");
     Serial.println(v.z,4);
-    //tft.println("Vector: ");
+    
+    Serial.println(vectPrintBuf);
 }
 
 double vectDP(vector a, vector b) {
