@@ -143,6 +143,79 @@ char vxStr[10]={'\0'};
 char vyStr[10]={'\0'};
 char vzStr[10]={'\0'};
 
+//LCD defines
+//button startBut, setBut, resetBut;
+
+#define     startBut_x1   320-BOXSIZE*5/2
+#define     startBut_y1   0
+#define     startBut_x2   320
+#define     startBut_y2   0+BOXSIZE*3/2
+#define     startBut_lx   BOXSIZE*5/2
+#define     startBut_ly   BOXSIZE*3/2
+#define     startBut_c    GREEN
+#define     setBut_x1     320-BOXSIZE*5/2
+#define     setBut_y1     BOXSIZE*3/2
+#define     setBut_x2     320
+#define     setBut_y2     BOXSIZE*6/2
+#define     setBut_lx     BOXSIZE*5/2
+#define     setBut_ly     BOXSIZE*3/2
+#define     setBut_c      BLUE
+#define     resetBut_x1   320-BOXSIZE*5/2
+#define     resetBut_y1   BOXSIZE*3
+#define     resetBut_x2   320
+#define     resetBut_y2   BOXSIZE*9/2
+#define     resetBut_lx   BOXSIZE*5/2
+#define     resetBut_ly   BOXSIZE*3/2
+#define     resetBut_c    RED
+#define     unitBut_x1    320-BOXSIZE*5/2
+#define     unitBut_y1    BOXSIZE*9/2
+#define     unitBut_x2    320
+#define     unitBut_y2    0+BOXSIZE*12/2
+#define     unitBut_lx    BOXSIZE*5/2
+#define     unitBut_ly    BOXSIZE*3/2
+#define     unitBut_c     YELLOW
+#define     unitBut_div   unitBut_x1+unitBut_lx/2-1
+
+#define     disturbStr_x  BOXSIZE/8
+#define     disturbStr_y  BOXSIZE+BOXSIZE*1/6-15
+#define     disturbBar_x  BOXSIZE*3/2
+#define     disturbBar_y  BOXSIZE-15
+#define     disturbBar_lx BOXSIZE*7/2
+#define     disturbBar_ly BOXSIZE/2
+
+
+#define     out_tot_x     BOXSIZE/8
+#define     out_tot_y     75
+#define     out_tot_ux    90
+#define     out_tot_uy    75
+
+#define     out_p2p_x     BOXSIZE/8
+#define     out_p2p_y     105
+#define     out_p2p_ux    90
+#define     out_p2p_uy    105
+   
+#define     out_l2p_x     BOXSIZE/8
+#define     out_l2p_y     135
+#define     out_l2p_ux    90
+#define     out_l2p_uy    135
+
+#define     out_ang_x     BOXSIZE/8
+#define     out_ang_y     165
+#define     out_ang_ux    90
+#define     out_ang_uy    165
+
+#define     out_str_x     90
+
+#define     status_x      BOXSIZE/8
+#define     status_y      195
+
+void statusPrint(char* myStr,int MYCOLOUR) {
+    tft.setTextSize(3);
+    tft.setCursor(status_x,status_y);
+    tft.setTextColor(MYCOLOUR,BLACK);
+    tft.print(myStr);
+}
+
 void vectPrint(vector v) {
     tft.setCursor(lcdVectx1,lcdVecty1);
 
@@ -244,7 +317,7 @@ char *findDigit(char *str) {
 void mpuGetData() {
 // get current FIFO count
 #ifdef DEBUG_MPU
-    Serial.println("get data start");
+    //Serial.println("get data start");
 #endif
     
     fifoCount = mpu.getFIFOCount();
@@ -260,7 +333,7 @@ void mpuGetData() {
     while (fifoCount < packetSize) fifoCount = mpu.getFIFOCount();
     // read a packet from FIFO
 #ifdef DEBUG_MPU
-        Serial.println("Reading data packet");
+        //Serial.println("Reading data packet");
 #endif
         mpu.getFIFOBytes(fifoBuffer, packetSize);
         
@@ -287,88 +360,16 @@ void mpuGetData() {
 //            Serial.println(vz);
         
         // blink LED to indicate activity
-        blinkState = !blinkState;
+        //blinkState = !blinkState;
         //digitalWrite(LED_PIN, blinkState);    
 #ifdef MPU_DEBUG
-        Serial.println("Get data stop");
+        //Serial.println("Get data stop");
 #endif
 }
 
 // LCD and touch functions
 // 
 //
-
-struct button {
-    int c;
-    int x1;
-    int x2;
-    int y1;
-    int y2;
-    int lx;
-    int ly;
-};
-
-//button startBut, setBut, resetBut;
-
-#define     startBut_x1   320-BOXSIZE*5/2
-#define     startBut_y1   0
-#define     startBut_x2   320
-#define     startBut_y2   0+BOXSIZE*3/2
-#define     startBut_lx   BOXSIZE*5/2
-#define     startBut_ly   BOXSIZE*3/2
-#define     startBut_c    GREEN
-#define     setBut_x1     320-BOXSIZE*5/2
-#define     setBut_y1     BOXSIZE*3/2
-#define     setBut_x2     320
-#define     setBut_y2     BOXSIZE*6/2
-#define     setBut_lx     BOXSIZE*5/2
-#define     setBut_ly     BOXSIZE*3/2
-#define     setBut_c      BLUE
-#define     resetBut_x1   320-BOXSIZE*5/2
-#define     resetBut_y1   BOXSIZE*3
-#define     resetBut_x2   320
-#define     resetBut_y2   BOXSIZE*9/2
-#define     resetBut_lx   BOXSIZE*5/2
-#define     resetBut_ly   BOXSIZE*3/2
-#define     resetBut_c    RED
-#define     unitBut_x1    320-BOXSIZE*5/2
-#define     unitBut_y1    BOXSIZE*9/2
-#define     unitBut_x2    320
-#define     unitBut_y2    0+BOXSIZE*12/2
-#define     unitBut_lx    BOXSIZE*5/2
-#define     unitBut_ly    BOXSIZE*3/2
-#define     unitBut_c     YELLOW
-#define     unitBut_div   unitBut_x1+unitBut_lx/2-1
-
-#define     disturbStr_x  BOXSIZE/8
-#define     disturbStr_y  BOXSIZE+BOXSIZE*1/6-15
-#define     disturbBar_x  BOXSIZE*3/2
-#define     disturbBar_y  BOXSIZE-15
-#define     disturbBar_lx BOXSIZE*7/2
-#define     disturbBar_ly BOXSIZE/2
-
-
-#define     out_tot_x     BOXSIZE/8
-#define     out_tot_y     75
-#define     out_tot_ux    110
-#define     out_tot_uy    75
-
-#define     out_p2p_x     BOXSIZE/8
-#define     out_p2p_y     105
-#define     out_p2p_ux    110
-#define     out_p2p_uy    105
-   
-#define     out_l2p_x     BOXSIZE/8
-#define     out_l2p_y     135
-#define     out_l2p_ux    110
-#define     out_l2p_uy    135
-
-#define     out_ang_x     BOXSIZE/8
-#define     out_ang_y     165
-#define     out_ang_ux    110
-#define     out_ang_uy    165
-
-#define     out_str_x     120
 
 void lcdScan() {
     
@@ -388,10 +389,10 @@ void lcdScan() {
     tft.setTextColor(lcdVectcw,lcdVectcb);
     //sprintf(vectPrintBuf,"P: x=%d y=%d z=%d",p.x,p.y,p.z);
     //if (p.z > MINPRESSURE && p.z < MAXPRESSURE) {
-        tft.print("("); tft.print(p.x);
+        /*tft.print("("); tft.print(p.x);
         tft.print(", "); tft.print(p.y);
         tft.print(", "); tft.print(p.z);
-        tft.println(")            ");
+        tft.println(")   ");*/
         //Serial.print("("); Serial.print(p.x);
         //Serial.print(", "); Serial.print(p.y);
         //Serial.println(")");
@@ -415,58 +416,63 @@ bool lcdValidCmd = true;
 
 
 void lcdGetCmd() {
-    lcdDB = millis()-softDbounceT>SOFT_DBOUNCE_TIME;
+    //lcdDB = millis()-softDbounceT>SOFT_DBOUNCE_TIME;
     lcdValidCmd = false;
     if (p.z > MINPRESSURE && p.z < MAXPRESSURE) {
         if(p.x>=startBut_x1 && p.x<=startBut_x2 && p.y>=startBut_y1 && p.y <= startBut_y2) {
-            if(lcdCmd != START) {
+            /*if(lcdCmd != START) {
                 lcdCmd=START;
-                softDbounceT=millis();
+                //softDbounceT=millis();
                 lcdValidCmd = true;
             }
             else if(lcdDB) {
                 lcdCmd=START;
-                softDbounceT=millis();
+                //softDbounceT=millis();
                 lcdValidCmd = true;
-            }
+            }*/
+            lcdCmd=START;
         }
         else if(p.x>=setBut_x1 && p.x<=setBut_x2 && p.y>=setBut_y1 && p.y <= setBut_y2){
-            if(lcdCmd != LASER) {
+            /*if(lcdCmd != LASER) {
                 lcdCmd=LASER;
-                softDbounceT=millis();
+                //softDbounceT=millis();
                 lcdValidCmd = true;
             }
             else if(lcdDB) {
                 lcdCmd=LASER;
-                softDbounceT=millis();
+                //softDbounceT=millis();
                 lcdValidCmd = true;
-            }
+            }*/
+            lcdCmd=LASER;
         }
         else if(p.x>=resetBut_x1 && p.x<=resetBut_x2 && p.y>=resetBut_y1 && p.y <= resetBut_y2){
-            if(lcdCmd != RESET) {
+            /*if(lcdCmd != RESET) {
                 lcdCmd=RESET;
-                softDbounceT=millis();
+                //softDbounceT=millis();
                 lcdValidCmd = true;
             }
             else if(lcdDB) {
                 lcdCmd=RESET;
-                softDbounceT=millis();
+                //softDbounceT=millis();
                 lcdValidCmd = true;
-            }
+            }*/
+            lcdCmd=RESET;
         }
         else if(p.x>=unitBut_x1 && p.x<=unitBut_x2 && p.y>=unitBut_y1 && p.y <= unitBut_y2){
-            if((lcdCmd != UNIT_ANG || lcdCmd != UNIT_LEN)) {
+            /*if((lcdCmd != UNIT_ANG || lcdCmd != UNIT_LEN)) {
                 if(p.x<unitBut_div) lcdCmd=UNIT_LEN;
                 else lcdCmd=UNIT_ANG;
-                softDbounceT=millis();
+                //softDbounceT=millis();
                 lcdValidCmd = true;
             }
             else if(lcdDB) {
                 if(p.x<unitBut_div) lcdCmd=UNIT_LEN;
                 else lcdCmd=UNIT_ANG;
-                softDbounceT=millis();
+                //softDbounceT=millis();
                 lcdValidCmd = true;
-            }
+            }*/
+            if(p.x<unitBut_div) lcdCmd=UNIT_LEN;
+            else lcdCmd=UNIT_ANG;
         }
     }
     else {
@@ -474,7 +480,7 @@ void lcdGetCmd() {
             lcdCmd=NONE;
         }
     }
-    
+    lcdValidCmd = true;
 }
 
 void lcd_init() {
@@ -486,6 +492,8 @@ void lcd_init() {
     tft.setTextColor(GREEN);
     tft.setTextSize(3);
     tft.println("Rulezer!");
+
+    statusPrint("YEETING   ",YELLOW);
 
     tft.fillRect(startBut_x1,startBut_y1,startBut_lx ,startBut_ly , startBut_c);
     tft.fillRect(setBut_x1  ,setBut_y1  ,setBut_lx ,setBut_ly , setBut_c);
@@ -526,17 +534,15 @@ void lcd_init() {
 
     tft.setTextSize(2);
     tft.setCursor(out_tot_x,out_tot_y);
-    tft.print("TOT D:");
+    tft.print("Total :");
     tft.setCursor(out_p2p_x,out_p2p_y);
-    tft.print("P2P D:");
+    tft.print("P to P:");
     tft.setCursor(out_l2p_x,out_l2p_y);
-    tft.print("L2P D:");
+    tft.print("L to P:");
     tft.setCursor(out_ang_x,out_ang_y);
-    tft.print("ANGLE:");
-    
-  //Make ui
-     
-  //currentcolor = RED;
+    tft.print("ANGLE :");
+
+    statusPrint("READY    ",GREEN);
 }
 
 
@@ -587,7 +593,7 @@ void setup() {
     // make sure it worked (returns 0 if so)
     if (devStatus == 0) {
         // turn on the DMP, now that it's ready
-        Serial.println(F("Enabling DMP..."));
+//        Serial.println(F("Enabling DMP..."));
         mpu.setDMPEnabled(true);
 
         // get expected DMP packet size for later comparison
@@ -597,9 +603,9 @@ void setup() {
         // 1 = initial memory load failed
         // 2 = DMP configuration updates failed
         // (if it's going to break, usually the code will be 1)
-        Serial.print(F("DMP Initialization failed (code "));
-        Serial.print(devStatus);
-        Serial.println(F(")"));
+//        Serial.print(F("DMP Initialization failed (code "));
+//        Serial.print(devStatus);
+//        Serial.println(F(")"));
     }
 
     // configure LED for output
@@ -612,24 +618,29 @@ void setup() {
     // Start the software serial for communication with the ESP8266
     mySerial.begin(19200);  
  
-    Serial.println("");
-    Serial.println(F("3117  YEEEEEEEEEEEEEEET\n"));
-    Serial.println(F("***********************************************\n"));
-    Serial.println("");    
+//    Serial.println("");
+//    Serial.println(F("3117  YEEEEEEEEEEEEEEET\n"));
+//    Serial.println(F("***********************************************\n"));
+//    Serial.println("");    
     
     unsigned long stab_start_t = millis();
-    Serial.print(F("Waiting for MPU to stabilise for "));
-    Serial.print(MPU_STAB_TIME);
-    Serial.println(F(" ms"));
+//    Serial.print(F("Waiting for MPU to stabilise for "));
+//    Serial.print(MPU_STAB_TIME);
+//    Serial.println(F(" ms"));
     while(millis() - stab_start_t < MPU_STAB_TIME) {
         mpu.resetFIFO();
         mpuGetData();
         vectGet(&v);
     }
-    Serial.println(F("Start YEEEEEEEEEEEEEEET\n"));
-    Serial.println(F("***********************************************\n"));
+//    Serial.println(F("Start YEEEEEEEEEEEEEEET\n"));
+//    Serial.println(F("***********************************************\n"));
     runtimeStart = millis();
     runtimeSec = millis();
+
+    mySerial.write('C');
+    lasGetB( TO, buf, BUFSIZE ); 
+            
+    statusPrint("READY    ",GREEN);
 }
 
 
@@ -638,22 +649,76 @@ void setup() {
 // ===                    MAIN PROGRAM LOOP                     ===
 // ================================================================
 
-#define DEG 1
-#define RAD 2
-#define MM  1
-#define CM  2
-#define ME  3
-#define INC 4
-#define FT  5
+#define DEG 0
+#define RAD 1
+#define ME  0
+#define CM  1
+#define MM  2
+#define INC 3
+#define FT  4
+
+#define DEG_SCALE 180/PI
+#define RAD_SCALE 1
 
 bool laserON = false;
 vector *vpp=&vp;
 vector *vpc=&vc;
-bool firstCalc = true;
+int numCalc = 0;
 long radToDeg = 360/(2*PI);
 char lenMode = MM;
 char angMode = DEG;
+double angScale = DEG_SCALE;
+double angVal = 0;
+//radToDeg
 double tot = 0;
+double dScale = 1;
+int dMode = ME;
+
+#define M2CM  0.1
+#define M2MM  0.01
+#define M2INC  39.37007874
+#define M2FT  M2INC/12
+bool resetFlag = true;
+
+char dModeStr[5][3] = {"M", "CM", "MM", "IN", "FT"};
+char angModeStr[2][4] = {"DEG","RAD"};
+
+int printLengths(int colour) {
+    if(resetFlag)return 1;
+    tft.setTextSize(2);
+    tft.fillRect(out_tot_x+out_str_x,out_tot_y,120,75 , BLACK);
+    tft.setTextColor(colour,BLACK);
+    tft.setCursor(out_l2p_x+out_str_x,out_l2p_y);
+    tft.print(dc*dScale,3);
+    tft.setCursor(out_l2p_ux+out_str_x,out_l2p_uy);
+    tft.print(dModeStr[dMode]);
+            
+    //maybe display p2p, tot 
+    if(numCalc>1) {
+        tft.setCursor(out_tot_x+out_str_x,out_tot_y);
+        tft.print(tot*dScale,3);
+        tft.setCursor(out_tot_ux+out_str_x,out_tot_uy);
+        tft.print(dModeStr[dMode]);
+        
+        tft.setCursor(out_p2p_x+out_str_x,out_p2p_y);
+        tft.print(d*dScale,3);
+        tft.setCursor(out_p2p_ux+out_str_x,out_p2p_uy);
+        tft.print(dModeStr[dMode]);
+    }
+    return 0;
+}
+
+void printAngle(int colour) {
+    if(numCalc>1) {
+        tft.setTextSize(2);
+        tft.setTextColor(colour,BLACK);
+        tft.fillRect(out_ang_x+out_str_x,out_ang_y,120,16,BLACK);
+        tft.setCursor(out_ang_x+out_str_x,out_ang_y);
+        tft.print(angVal*angScale,3);  
+        tft.setCursor(out_ang_ux+out_str_x,out_ang_uy);
+        tft.print(angModeStr[angMode]); 
+    }
+}
 
 void loop() {    
     if(millis() - runtimeSec > 10) {
@@ -666,7 +731,8 @@ void loop() {
     lcdGetCmd();
     if(lcdCmd==START && lcdValidCmd) {
         lcdCmd=START;
-        Serial.println("MEASURE");
+//        Serial.println("MEASURE");
+        statusPrint("MEASURING  ",YELLOW);
 
         vector *vtmp;
         mySerial.write('D');
@@ -675,15 +741,15 @@ void loop() {
         vectPrint(*vpc);
 
         
-        Serial.print(buf);
+//        Serial.print(buf);
         lasGetB( TO, buf, BUFSIZE );
         sbuf = String(findDigit(buf));
         dc = sbuf.toDouble() + d_offset;
 
-        Serial.println("Point set");
-        Serial.print(" Distance is ");
-        Serial.println(dc,4);
-        Serial.println(sbuf);
+//        Serial.println("Point set");
+//        Serial.print(" Distance is ");
+//        Serial.println(dc,4);
+//        Serial.println(sbuf);
         if(laserON) {
             mySerial.write('O');
         }
@@ -693,122 +759,143 @@ void loop() {
         cosC = vectDP(vc, vp) / (vectMag(vc) * vectMag(vp));
         //use cosine rule
         d = sqrt(dc*dc + dp*dp - 2*dc*dp*cosC);
-        Serial.print("Distance between two points is ");
-        Serial.print(d,4);
-        Serial.println("m");
-        Serial.print("Angle between two points is ");
-        Serial.print(acos(cosC)*radToDeg,8);
-        Serial.println(" degrees");
+//        Serial.print("Distance between two points is ");
+//        Serial.print(d,4);
+//        Serial.println("m");
+//        Serial.print("Angle between two points is ");
+//        Serial.print(acos(cosC)*radToDeg,8);
+//        Serial.println(" degrees");
 
-        Serial.println("Complete");
+//        Serial.println("Complete");
 
         //if error from laser
         if(dc==0) {
-            
+            statusPrint("LASER ERROR!  ",RED);
         }
-        else {
-            //display l2p
-            tft.setTextSize(2);
-            tft.setTextColor(WHITE,BLACK);
-            tft.setCursor(out_l2p_x+out_str_x,out_l2p_y);
-            tft.print(d,3);
-                    
+        else {      
+            resetFlag=false;
+            numCalc++;
+            printLengths(WHITE);             
             //maybe display p2p, tot and ang
-            if(!firstCalc) {
+            if(numCalc>1) {
+                angVal = acos(cosC);
+                printAngle(WHITE);
                 tot+=d;
-                tft.setCursor(out_tot_x+out_str_x,out_tot_y);
-                tft.print(tot,3);
-                tft.setCursor(out_p2p_x+out_str_x,out_p2p_y);
-                tft.print(dc,3);
-                tft.setCursor(out_ang_x+out_str_x,out_ang_y);
-                tft.print(acos(cosC)*radToDeg,3);
             }
-
-            firstCalc = false;
             //swap the vectors
             vtmp = vpp;
             vpp = vpc;
             vpc = vtmp;
             dp = dc;
+            statusPrint("MEASURED  ",GREEN);
         }           
     }
     else if(lcdCmd==LASER && lcdValidCmd) {
         lcdCmd==LASER;
-        Serial.println("LASER");
+        //Serial.println("LASER");
 
         if(laserON) {
             mySerial.write('C');
             laserON=false;
             lasGetB( TO, buf, BUFSIZE );  
-            Serial.print(buf);
+            //Serial.print(buf);
+            statusPrint("LASER OFF ",BLUE);
+            delay(500);
         }
         else {
             mySerial.write('O');
             laserON=true;
             lasGetB( TO, buf, BUFSIZE );
-            Serial.print(buf);
+            //Serial.print(buf);
+            statusPrint("LASER ON  ",BLUE);
+            delay(300);
         }
     }
     else if(lcdCmd==RESET && lcdValidCmd) {
         lcdCmd=RESET;
-        Serial.println("RESET");
+        //Serial.println("RESET");
 
-        firstCalc = false;
+        statusPrint("RESET!    ",BLUE);
+        resetFlag=true;
+        numCalc=0;
         tot=0;
+        angVal=0;
+        dc=0;
+        tft.setTextSize(2);
+        tft.setTextColor(WHITE,BLACK);
+        /*tft.setCursor(out_l2p_x+out_str_x,out_l2p_y);
+        tft.print("          ");
+        tft.setCursor(out_tot_x+out_str_x,out_tot_y);
+        tft.print("          ");
+        tft.setCursor(out_p2p_x+out_str_x,out_p2p_y);
+        tft.print("          ");
+        tft.setCursor(out_ang_x+out_str_x,out_ang_y);
+        tft.print("          ");*/
+        tft.fillRect(out_tot_x+out_str_x,out_tot_y,120,105,BLACK);
     }
     else if(lcdCmd==UNIT_ANG && lcdValidCmd) {
         lcdCmd=UNIT_ANG;
-        Serial.println("UNIT_ANG");
+        //Serial.println("UNIT_ANG");
 
+        if(angMode==DEG) {
+            angMode = RAD;
+            statusPrint("USING RAD",CYAN);
+            angScale = 1;
+        }
+        else {
+            angMode = DEG;
+            statusPrint("USING DEG",CYAN);
+            angScale = radToDeg;
+        }
+        printAngle(CYAN);    
+        delay(300);
     }
     else if(lcdCmd==UNIT_LEN && lcdValidCmd) {
         lcdCmd=UNIT_LEN;
-        Serial.println("UNIT_LEN");
+        //Serial.println("UNIT_LEN");
+        //get new mode
+        dMode++;
+        dMode%=5;
+        switch(dMode) {
+            
+            case ME:
+            statusPrint("USING M  ",BLUE);
+            dScale=1;
+            break;
+            
+            case CM:
+            dScale=M2CM;
+            statusPrint("USING CM  ",BLUE);
+            break;
+            
+            case MM:
+
+            dScale=M2MM;
+            statusPrint("USING MM  ",BLUE);
+            break;
+            
+            case INC:
+
+            dScale=M2INC;
+            statusPrint("USING INCH",BLUE);
+            break;
+            
+            case FT:
+
+            dScale=M2FT;
+            statusPrint("USING FEET ",BLUE);
+            break;
+        }
+        
+        printLengths(BLUE);
+        delay(300);
     }
     else {
         lcdCmd=NONE;
         //Serial.println("NONE");
     }
     
-    // other program behavior stuff here
-    // listen for user input 
-    if ( Serial.available() ) 
-    {
-        cmd = Serial.read();
-    }
     
-    switch(cmd) {
-        case 'O' : 
-            mySerial.write(cmd);
-            lasGetB( TO, buf, BUFSIZE );
-            Serial.print(buf);
-        break;
-        case 'C' : 
-            mySerial.write(cmd);
-            lasGetB( TO, buf, BUFSIZE );
-            Serial.print(buf);
-        break;
-        case 'M' :
-            mySerial.write(cmd);
-            lasGetB( TO, buf, BUFSIZE );
-            Serial.print(buf);
-            lasGetB( TO, buf, BUFSIZE );
-            Serial.print(buf);
-        break;
-        case 'G' :
-            showFifoReset *= -1;
-            Serial.println("Toggled Fifo reset display");                
-        break;
-        case 'I' :
-#ifdef DEBUG_MPU
-            Serial.println("Command I");
-#endif
-            //mpu.resetFIFO();delay(5);;
-            mpuGetData();
-            vectGet(&v);
-            if(showVect == 1) vectPrint(v);                
-        break;
-    }
-    cmd = 'I';
-//  cmd = 'A'; 
+    mpuGetData();
+    vectGet(&v);
 }
