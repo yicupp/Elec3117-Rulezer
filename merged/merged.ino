@@ -211,27 +211,6 @@ char *dbuf;
 // ===               Functions                                  ===
 // ================================================================
 
-void help() {
-    Serial.println(F("*****************Help*****************"));
-    Serial.println(F("Commands:"));
-    Serial.println(F("H | display help"));
-    Serial.println(F("O | turn on laser"));
-    Serial.println(F("C | turn off laser"));
-    Serial.println(F("S | read state of laser"));
-    Serial.println(F("D | measure d via laser"));
-    Serial.println(F("M | slow measure"));
-    Serial.println(F("F | fast measure"));
-    Serial.println(F("P | set position for measurement"));
-    Serial.println(F("G | get distance / accumulated distance"));
-    Serial.println(F("V | set vector 1"));
-    Serial.println(F("U | set vector 2"));
-    Serial.println(F("K | kalculate distance"));
-    Serial.println(F("I | default state"));
-    Serial.println(F("A | get orientation vector"));
-    Serial.println(F("T | change measurement speed"));
-    Serial.println(F("G, P, has not been implemented. Please use U, V, K to measure"));
-}
-
 int lasGetB( unsigned int to, char *buff, int buff_size ) {
     int charc = 0;
     int count = 0;
@@ -333,25 +312,61 @@ struct button {
 
 #define     startBut_x1   320-BOXSIZE*5/2
 #define     startBut_y1   0
-#define     startBut_x2   320-BOXSIZE*5/2+BOXSIZE*5/2
-#define     startBut_y2   0+BOXSIZE*2
+#define     startBut_x2   320
+#define     startBut_y2   0+BOXSIZE*3/2
 #define     startBut_lx   BOXSIZE*5/2
-#define     startBut_ly   BOXSIZE*2
+#define     startBut_ly   BOXSIZE*3/2
 #define     startBut_c    GREEN
 #define     setBut_x1     320-BOXSIZE*5/2
-#define     setBut_y1     BOXSIZE*2
-#define     setBut_x2     320-BOXSIZE*5/2+BOXSIZE*5/2
-#define     setBut_y2     BOXSIZE*2+BOXSIZE*2
+#define     setBut_y1     BOXSIZE*3/2
+#define     setBut_x2     320
+#define     setBut_y2     BOXSIZE*6/2
 #define     setBut_lx     BOXSIZE*5/2
-#define     setBut_ly     BOXSIZE*2
+#define     setBut_ly     BOXSIZE*3/2
 #define     setBut_c      BLUE
 #define     resetBut_x1   320-BOXSIZE*5/2
-#define     resetBut_y1   BOXSIZE*4
-#define     resetBut_x2   320-BOXSIZE*5/2+BOXSIZE*5/2
-#define     resetBut_y2   BOXSIZE*4+BOXSIZE*2
+#define     resetBut_y1   BOXSIZE*3
+#define     resetBut_x2   320
+#define     resetBut_y2   BOXSIZE*9/2
 #define     resetBut_lx   BOXSIZE*5/2
-#define     resetBut_ly   BOXSIZE*2
+#define     resetBut_ly   BOXSIZE*3/2
 #define     resetBut_c    RED
+#define     unitBut_x1    320-BOXSIZE*5/2
+#define     unitBut_y1    BOXSIZE*9/2
+#define     unitBut_x2    320
+#define     unitBut_y2    0+BOXSIZE*12/2
+#define     unitBut_lx    BOXSIZE*5/2
+#define     unitBut_ly    BOXSIZE*3/2
+#define     unitBut_c     YELLOW
+#define     unitBut_div   unitBut_x1+unitBut_lx/2-1
+
+#define     disturbStr_x  BOXSIZE/8
+#define     disturbStr_y  BOXSIZE+BOXSIZE*1/2
+#define     disturbBar_x  BOXSIZE*3/2
+#define     disturbBar_y  BOXSIZE
+#define     disturbBar_lx BOXSIZE*7/2
+#define     disturbBar_ly BOXSIZE/2
+
+
+#define     out_tot_x     BOXSIZE/8
+#define     out_tot_y     BOXSIZE*2
+#define     out_tot_ux    BOSIZE*5/2
+#define     out_tot_uy    BOXSIZE*2
+
+#define     out_len_x     BOXSIZE/8
+#define     out_len_y     BOXSIZE*3
+#define     out_len_ux    BOSIZE*5/2
+#define     out_len_uy    BOXSIZE*3
+   
+#define     out_dis_x     BOXSIZE/8
+#define     out_dis_y     BOXSIZE*5
+#define     out_dis_ux    BOSIZE*5/2
+#define     out_dis_uy    BOXSIZE*5
+
+#define     out_deg_x     BOXSIZE/8
+#define     out_deg_y     BOXSIZE*4
+#define     out_deg_ux    BOSIZE*5/2
+#define     out_deg_uy    BOXSIZE*4
 
 void lcdScan() {
     
@@ -373,7 +388,8 @@ void lcdScan() {
     //if (p.z > MINPRESSURE && p.z < MAXPRESSURE) {
         tft.print("("); tft.print(p.x);
         tft.print(", "); tft.print(p.y);
-        tft.println(")      ");
+        tft.print(", "); tft.print(p.z);
+        tft.println(")            ");
         //Serial.print("("); Serial.print(p.x);
         //Serial.print(", "); Serial.print(p.y);
         //Serial.println(")");
@@ -385,6 +401,8 @@ void lcdScan() {
 #define START 1
 #define LASER 2
 #define RESET 3
+#define UNIT_LEN  4
+#define UNIT_ANG  5
 
 int lcdCmd = NONE;
 int lcdPrevCmd = NONE;
@@ -392,6 +410,7 @@ unsigned long softDbounceT = 0;
 #define SOFT_DBOUNCE_TIME 1000
 bool lcdDB = true;
 bool lcdValidCmd = true;
+
 
 void lcdGetCmd() {
     lcdDB = millis()-softDbounceT>SOFT_DBOUNCE_TIME;
@@ -433,6 +452,20 @@ void lcdGetCmd() {
                 lcdValidCmd = true;
             }
         }
+        else if(p.x>=unitBut_x1 && p.x<=unitBut_x2 && p.y>=unitBut_y1 && p.y <= unitBut_y2){
+            if((lcdCmd != UNIT_ANG || lcdCmd != UNIT_LEN)) {
+                if(p.x<unitBut_div) lcdCmd=UNIT_LEN;
+                else lcdCmd=UNIT_ANG;
+                softDbounceT=millis();
+                lcdValidCmd = true;
+            }
+            else if(lcdDB) {
+                if(p.x<unitBut_div) lcdCmd=UNIT_LEN;
+                else lcdCmd=UNIT_ANG;
+                softDbounceT=millis();
+                lcdValidCmd = true;
+            }
+        }
     }
     else {
         if(lcdDB) {
@@ -444,9 +477,6 @@ void lcdGetCmd() {
 
 void lcd_init() {
     Serial.println(F("Initialising LCD FUNCTION"));    
-    
-    
-    
     tft.begin(0x8230);
 
     tft.fillScreen(BLACK);
@@ -455,22 +485,42 @@ void lcd_init() {
     tft.setTextSize(3);
     tft.println("Rulezer!");
 
-    tft.fillRect(startBut_x1,startBut_y1,BOXSIZE*5/2 ,BOXSIZE*2 , startBut_c);
-    tft.fillRect(setBut_x1  ,setBut_y1  ,BOXSIZE*5/2 ,BOXSIZE*2 , setBut_c);
-    tft.fillRect(resetBut_x1,resetBut_y1,BOXSIZE*5/2 ,BOXSIZE*2 , resetBut_c);
+    tft.fillRect(startBut_x1,startBut_y1,startBut_lx ,startBut_ly , startBut_c);
+    tft.fillRect(setBut_x1  ,setBut_y1  ,setBut_lx ,setBut_ly , setBut_c);
+    tft.fillRect(resetBut_x1,resetBut_y1,resetBut_lx ,resetBut_ly , resetBut_c);
+    tft.fillRect(unitBut_x1,unitBut_y1,unitBut_lx ,unitBut_ly , unitBut_c);
 
-    tft.setCursor(310-BOXSIZE*2,BOXSIZE*3/4);
-    tft.setTextColor(BLACK);
-    tft.setTextSize(2);
-    tft.print("Measure");
-    tft.setCursor(320-BOXSIZE*2,BOXSIZE*11/4);
+    tft.setCursor(325-BOXSIZE*2,BOXSIZE*9/4);
+    tft.setCursor(320-BOXSIZE*2,BOXSIZE*8/4);
     tft.setTextColor(WHITE);
     tft.setTextSize(2);
     tft.print("Laser");
-    tft.setCursor(320-BOXSIZE*2,BOXSIZE*19/4);
+    
+    tft.setCursor(320-BOXSIZE*2,BOXSIZE*14/4);
     tft.setTextColor(WHITE);
     tft.setTextSize(2);
     tft.print("Reset");
+
+    tft.setCursor(310-BOXSIZE*2,BOXSIZE*2/4);
+    tft.setTextColor(BLACK);
+    tft.setTextSize(2);
+    tft.print("Measure");
+    
+    tft.setCursor(325-BOXSIZE*2,BOXSIZE*19/4);
+//    tft.setTextColor(BLACK);
+//    tft.setTextSize(2);
+    tft.print("Unit");
+    tft.setTextSize(1);
+    tft.setCursor(320-BOXSIZE*2,BOXSIZE*43/8);
+    tft.print("Len");
+    tft.setCursor(326-BOXSIZE,BOXSIZE*43/8);
+    tft.print("Ang");
+    tft.fillRect(unitBut_x1+unitBut_lx/2-1,unitBut_y1+unitBut_ly/2,2,unitBut_ly/2,BLACK);
+
+    tft.setTextColor(WHITE);
+    tft.setCursor(disturbStr_x,disturbStr_y);
+    tft.println("Movement");
+    tft.fillRect(disturbBar_x,disturbBar_y,disturbBar_lx,disturbBar_ly,RED);
     
   //Make ui
      
@@ -498,6 +548,9 @@ void setup() {
     // initialize device
     Serial.println(F("Initializing I2C devices..."));
     mpu.initialize();
+
+    Serial.println(F("Initialising LCD"));
+    lcd_init();
 
     // verify connection
     Serial.println(F("Testing device connections..."));
@@ -551,8 +604,7 @@ void setup() {
     Serial.println(F("3117  YEEEEEEEEEEEEEEET\n"));
     Serial.println(F("***********************************************\n"));
     Serial.println("");    
-    Serial.println(F("Initialising LCD"));
-    lcd_init();
+    
     unsigned long stab_start_t = millis();
     Serial.print(F("Waiting for MPU to stabilise for "));
     Serial.print(MPU_STAB_TIME);
@@ -574,11 +626,21 @@ void setup() {
 // ===                    MAIN PROGRAM LOOP                     ===
 // ================================================================
 
+#define DEG 1
+#define RAD 2
+#define MM  1
+#define CM  2
+#define ME  3
+#define INC 4
+#define FT  5
+
 bool laserON = false;
 vector *vpp=&vp;
 vector *vpc=&vc;
 bool firstCalc = true;
 long radToDeg = 360/(2*PI);
+char lenMode = MM;
+char angMode = DEG;
 
 void loop() {    
     if(millis() - runtimeSec > 10) {
@@ -592,82 +654,83 @@ void loop() {
     if(lcdCmd==START && lcdValidCmd) {
         lcdCmd=START;
         Serial.println("MEASURE");
+
+        vector *vtmp;
+        mySerial.write('D');
+        lasGetB( TO, buf, BUFSIZE );
+        vectGet(vpc);
+        vectPrint(*vpc);
+
+        //swap the vectors
+        vtmp = vpp;
+        vpp = vpc;
+        vpc = vtmp;
+        dp = dc;
+        
+        Serial.print(buf);
+        lasGetB( TO, buf, BUFSIZE );
+        sbuf = String(findDigit(buf));
+        dc = sbuf.toDouble() + d_offset;
+        Serial.println("Point set");
+        Serial.print(" Distance is ");
+        Serial.println(dc,4);
+        Serial.println(sbuf);
+        if(laserON) {
+            mySerial.write('O');
+        }
+        lasGetB( TO, buf, BUFSIZE );
+        mpu.resetFIFO();
+        Serial.print(buf);
+        if(!firstCalc) {
+            //calculate cos theta
+            cosC = vectDP(vc, vp) / (vectMag(vc) * vectMag(vp));
+            //use cosine rule
+            d = sqrt(dc*dc + dp*dp - 2*dc*dp*cosC);
+            Serial.print("Distance between two points is ");
+            Serial.print(d,4);
+            Serial.println("m");
+            Serial.print("Angle between two points is ");
+            Serial.print(acos(cosC)*radToDeg,8);
+            Serial.println(" degrees");
+        }
+        Serial.println("Complete");
+        firstCalc = false;
+            
     }
     else if(lcdCmd==LASER && lcdValidCmd) {
         lcdCmd==LASER;
         Serial.println("LASER");
+
+        if(laserON) {
+            mySerial.write('C');
+            laserON=false;
+            lasGetB( TO, buf, BUFSIZE );  
+            Serial.print(buf);
+        }
+        else {
+            mySerial.write('O');
+            laserON=true;
+            lasGetB( TO, buf, BUFSIZE );
+            Serial.print(buf);
+        }
     }
     else if(lcdCmd==RESET && lcdValidCmd) {
         lcdCmd=RESET;
         Serial.println("RESET");
+
+        firstCalc = false;
+    }
+    else if(lcdCmd==UNIT_ANG && lcdValidCmd) {
+        lcdCmd=UNIT_ANG;
+        Serial.println("UNIT_ANG");
+    }
+    else if(lcdCmd==UNIT_LEN && lcdValidCmd) {
+        lcdCmd=UNIT_LEN;
+        Serial.println("UNIT_LEN");
     }
     else {
         lcdCmd=NONE;
         //Serial.println("NONE");
-    }
-
-    switch(lcdCmd) {
-        case START:                
-            vector *vtmp;
-            mySerial.write('D');
-            lasGetB( TO, buf, BUFSIZE );
-            vectGet(vpc);
-            vectPrint(*vpc);
-
-            //swap the vectors
-            vtmp = vpp;
-            vpp = vpc;
-            vpc = vtmp;
-            dp = dc;
-            
-            Serial.print(buf);
-            lasGetB( TO, buf, BUFSIZE );
-            sbuf = String(findDigit(buf));
-            dc = sbuf.toDouble() + d_offset;
-            Serial.println("Point set");
-            Serial.print(" Distance is ");
-            Serial.println(dc,4);
-            Serial.println(sbuf);
-            mySerial.write('O');
-            lasGetB( TO, buf, BUFSIZE );
-            Serial.print(buf);
-            if(!firstCalc) {
-                //calculate cos theta
-                cosC = vectDP(vc, vp) / (vectMag(vc) * vectMag(vp));
-                //use cosine rule
-                d = sqrt(dc*dc + dp*dp - 2*dc*dp*cosC);
-                Serial.print("Distance between two points is ");
-                Serial.print(d,4);
-                Serial.println("m");
-                Serial.print("Angle between two points is ");
-                Serial.print(acos(cosC)*radToDeg,8);
-                Serial.println("degrees");
-            }
-            firstCalc = false;
-            
-        break;
-        case LASER:
-            if(laserON) {
-                mySerial.write('C');
-                laserON=false;
-                lasGetB( TO, buf, BUFSIZE );  
-                Serial.print(buf);
-            }
-            else {
-                mySerial.write('O');
-                laserON=true;
-                lasGetB( TO, buf, BUFSIZE );
-                Serial.print(buf);
-            }
-        break;
-
-        case RESET:
-            
-        break;
-        
-        case NONE:
-
-        break;
     }
     
     // other program behavior stuff here
@@ -695,25 +758,6 @@ void loop() {
             lasGetB( TO, buf, BUFSIZE );
             Serial.print(buf);
         break;
-        case 'F' :
-            mySerial.write(cmd);
-            lasGetB( TO, buf, BUFSIZE );
-            Serial.print(buf);
-            lasGetB( TO, buf, BUFSIZE );
-            Serial.print(buf);
-        break;
-        case 'P' :
-//                mpu.resetFIFO();delay(5);;
-            mySerial.write('D');    
-
-            lasGetB( TO, buf, BUFSIZE );
-            vectGet(&vc);
-            vectPrint(vc);
-            mpuGetData();
-            Serial.print(buf);
-            lasGetB( TO, buf, BUFSIZE );
-            Serial.print(buf);
-        break;
         case 'G' :
             showFifoReset *= -1;
             Serial.println("Toggled Fifo reset display");                
@@ -727,64 +771,6 @@ void loop() {
             vectGet(&v);
             if(showVect == 1) vectPrint(v);                
         break;
-/*        case 'U' :
-            mpu.resetFIFO();delay(5);;                
-            mySerial.write('D');
-            
-            lasGetB( TO, buf, BUFSIZE );
-            //mpuGetData();
-            vectGet(&vp);
-            vectPrint(vp);
-            Serial.print(buf);
-            lasGetB( TO, buf, BUFSIZE );
-            sbuf = String(findDigit(buf));
-            dp = sbuf.toDouble() + d_offset;
-            Serial.println("Point 1 set");
-            Serial.print(" Distance is ");
-            Serial.println(dp,4);
-            Serial.println(sbuf);
-            mySerial.write('O');
-            lasGetB( TO, buf, BUFSIZE );
-            Serial.print(buf);*/
-
-        break;
-/*        case 'V' :
-            mpu.resetFIFO();delay(5);;                
-            mySerial.write('D');
-            
-            lasGetB( TO, buf, BUFSIZE );
-            //mpuGetData();
-            vectGet(&vc);
-            vectPrint(vc);
-            Serial.print(buf);
-            lasGetB( TO, buf, BUFSIZE );
-            sbuf = String(findDigit(buf));
-            dc = sbuf.toDouble() + d_offset;
-            Serial.println("Point 2 set");
-            Serial.print(" Distance is ");
-            Serial.println(dc,4);
-            Serial.println(sbuf);
-            mySerial.write('O');
-            lasGetB( TO, buf, BUFSIZE );
-            Serial.print(buf);*/
-
-        break;
-        case 'A' :
-            //mpu.resetFIFO();delay(5);;
-            mpuGetData();
-            vectGet(&v);
-            vectPrint(v);        
-        break;
-        case 'K' :
-            //calculate cos theta
-            cosC = vectDP(vc, vp) / (vectMag(vc) * vectMag(vp));
-            //use cosine rule
-            d = sqrt(dc*dc + dp*dp - 2*dc*dp*cosC);
-            Serial.print("Distance between two points is ");
-            Serial.print(d,4);
-            Serial.println("m");
-        break;
-
     }
     cmd = 'I';
 //  cmd = 'A'; 
