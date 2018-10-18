@@ -144,8 +144,6 @@ char vyStr[10]={'\0'};
 char vzStr[10]={'\0'};
 
 void vectPrint(vector v) {
-    pinMode(XM, OUTPUT);   //restore mode
-    pinMode(YP, OUTPUT);
     tft.setCursor(lcdVectx1,lcdVecty1);
 
     tft.setTextSize(1);
@@ -164,7 +162,7 @@ void vectPrint(vector v) {
     tft.print(" z=");
     tft.println(v.z,4);*/
     
-    Serial.print("Vector: ");
+    /*Serial.print("Vector: ");
     Serial.print("x = ");
     Serial.print(v.x,4);
     Serial.print(", y = ");
@@ -173,7 +171,14 @@ void vectPrint(vector v) {
     Serial.println(v.z,4);
     
     Serial.println(vectPrintBuf);
+    */
 }
+#define MINPRESSURE 10
+#define MAXPRESSURE 1000
+
+TSPoint p;
+
+
 
 double vectDP(vector a, vector b) {
     return a.x*b.x + a.y*b.y + a.z*b.z;
@@ -348,6 +353,65 @@ struct button {
 #define     resetBut_ly   BOXSIZE*2
 #define     resetBut_c    RED
 
+void lcdScan() {
+    
+    pinMode(XM, INPUT);   //change mode for reading
+    pinMode(YP, INPUT);
+    TSPoint tmpp = ts.getPoint();
+
+    //for some reason, the x and y values are swapped
+    p.y = 240-map(tmpp.x, TS_MINX, TS_MAXX, tft.height(), 0);
+    p.x = 320-map(tmpp.y, TS_MINY, TS_MAXY, tft.width(), 0);
+    p.z = tmpp.z;
+    
+    pinMode(XM, OUTPUT);   //restore mode
+    pinMode(YP, OUTPUT);
+    tft.setCursor(lcdVectx1,lcdVecty1-20);
+    tft.setTextSize(1);
+    tft.setTextColor(lcdVectcw,lcdVectcb);
+    //sprintf(vectPrintBuf,"P: x=%d y=%d z=%d",p.x,p.y,p.z);
+    if (p.z > MINPRESSURE && p.z < MAXPRESSURE) {
+        tft.print("("); tft.print(p.x);
+        tft.print(", "); tft.print(p.y);
+        tft.println(")");
+        Serial.print("("); Serial.print(p.x);
+        Serial.print(", "); Serial.print(p.y);
+        Serial.println(")");
+    }
+    //tft.print(vectPrintBuf);
+}
+
+#define NONE 0
+#define START 1
+#define LASER 2
+#define RESET 3
+
+int lcdCmd = NONE;
+int lcdPrevCmd = NONE;
+
+void lcdGetCmd() {
+    if (p.z > MINPRESSURE && p.z < MAXPRESSURE) {
+        if(p.x>=startBut_x1 && p.x<=startBut_x2 && p.y>=startBut_y1 && p.y <= startBut_y2) {
+            
+            
+            lcdCmd=START;
+            lcdPrevCmd=START;
+        }
+        else if(p.x>=setBut_x1 && p.x<=setBut_x2 && p.y>=setBut_y1 && p.y <= setBut_y2){
+            lcdCmd=LASER;
+            lcdPrevCmd=LASER;
+        }
+        else if(p.x>=resetBut_x1 && p.x<=resetBut_x2 && p.y>=resetBut_y1 && p.y <= resetBut_y2){
+            lcdCmd=RESET;
+            lcdPrevCmd=RESET;
+        }
+    }
+    else {
+        lcdCmd=NONE;
+    }
+    
+}
+
 void lcd_init() {
     Serial.println(F("Initialising LCD FUNCTION"));    
     
@@ -373,14 +437,14 @@ void lcd_init() {
     tft.fillRect(setBut_x1  ,setBut_y1  ,BOXSIZE*5/2 ,BOXSIZE*2 , setBut_c);
     tft.fillRect(resetBut_x1,resetBut_y1,BOXSIZE*5/2 ,BOXSIZE*2 , resetBut_c);
 
-    tft.setCursor(320-BOXSIZE*2,BOXSIZE*3/4);
-    tft.setTextColor(WHITE);
+    tft.setCursor(310-BOXSIZE*2,BOXSIZE*3/4);
+    tft.setTextColor(BLACK);
     tft.setTextSize(2);
-    tft.print("Start");
+    tft.print("Measure");
     tft.setCursor(320-BOXSIZE*2,BOXSIZE*11/4);
     tft.setTextColor(WHITE);
     tft.setTextSize(2);
-    tft.print(" Set ");
+    tft.print("Laser");
     tft.setCursor(320-BOXSIZE*2,BOXSIZE*19/4);
     tft.setTextColor(WHITE);
     tft.setTextSize(2);
@@ -493,19 +557,16 @@ void loop() {
     // wait for MPU interrupt or extra packet(s) available
     //while (!mpuInterrupt && fifoCount < packetSize) {
     while(1){
-        TSPoint p = ts.getPoint();
+         
         if(millis() - runtimeSec > 10) {
-            //Serial.print(F("Device is alive for "));
-            //Serial.print((millis()-runtimeStart));
-            //Serial.println(" ms in the loop");
             runtimeSec = millis();
-            //mpu.resetFIFO();//delay(5);;
             mpuGetData();
             vectGet(&v);
             vectPrint(v); 
-            //tft.println("Hello World!");
-            //delay(10);
         }
+        lcdScan();
+        lcdGetCmd();
+        
         // other program behavior stuff here
         // listen for user input 
         if ( Serial.available() ) 
