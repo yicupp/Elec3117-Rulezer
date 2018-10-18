@@ -129,10 +129,10 @@ struct vector {
 double d = 0;
 double d_offset = 0.070; //offset of 30mm => the wall between mic and rest of the board
 
-#define lcdVectx1   20
-#define lcdVecty1   180
-#define lcdVectx2   200
-#define lcdVecty2   190
+#define lcdVectx1   5
+#define lcdVecty1   220
+#define lcdVectx2   120
+#define lcdVecty2   230
 #define lcdVectlx   lcdVectx2-lcdVectx1
 #define lcdVectly   lcdVecty2-lcdVecty1
 #define lcdVectcw   WHITE
