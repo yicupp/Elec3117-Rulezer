@@ -341,34 +341,34 @@ struct button {
 #define     unitBut_div   unitBut_x1+unitBut_lx/2-1
 
 #define     disturbStr_x  BOXSIZE/8
-#define     disturbStr_y  BOXSIZE+BOXSIZE*1/6
+#define     disturbStr_y  BOXSIZE+BOXSIZE*1/6-15
 #define     disturbBar_x  BOXSIZE*3/2
-#define     disturbBar_y  BOXSIZE
+#define     disturbBar_y  BOXSIZE-15
 #define     disturbBar_lx BOXSIZE*7/2
 #define     disturbBar_ly BOXSIZE/2
 
 
 #define     out_tot_x     BOXSIZE/8
-#define     out_tot_y     60
-#define     out_tot_ux    200
-#define     out_tot_uy    60
+#define     out_tot_y     75
+#define     out_tot_ux    110
+#define     out_tot_uy    75
 
 #define     out_p2p_x     BOXSIZE/8
-#define     out_p2p_y     90
-#define     out_p2p_ux    200
-#define     out_p2p_uy    90
+#define     out_p2p_y     105
+#define     out_p2p_ux    110
+#define     out_p2p_uy    105
    
 #define     out_l2p_x     BOXSIZE/8
-#define     out_l2p_y     120
-#define     out_l2p_ux    200
-#define     out_l2p_uy    120
+#define     out_l2p_y     135
+#define     out_l2p_ux    110
+#define     out_l2p_uy    135
 
 #define     out_ang_x     BOXSIZE/8
-#define     out_ang_y     150
-#define     out_ang_ux    200
-#define     out_ang_uy    150
+#define     out_ang_y     165
+#define     out_ang_ux    110
+#define     out_ang_uy    165
 
-#define     out_str_y     120
+#define     out_str_x     120
 
 void lcdScan() {
     
@@ -653,7 +653,7 @@ bool firstCalc = true;
 long radToDeg = 360/(2*PI);
 char lenMode = MM;
 char angMode = DEG;
-unsigned long tot = 0;
+double tot = 0;
 
 void loop() {    
     if(millis() - runtimeSec > 10) {
@@ -674,17 +674,6 @@ void loop() {
         vectGet(vpc);
         vectPrint(*vpc);
 
-        /*
-         * tft.setTextSize(2);
-    tft.setCursor(out_tot_x,out_tot_y);
-    tft.print("TOT D:");
-    tft.setCursor(out_p2p_x,out_p2p_y);
-    tft.print("P2P D:");
-    tft.setCursor(out_l2p_x,out_l2p_y);
-    tft.print("L2P D:");
-    tft.setCursor(out_ang_x,out_ang_y);
-    tft.print("ANGLE:");
-         */
         
         Serial.print(buf);
         lasGetB( TO, buf, BUFSIZE );
@@ -718,13 +707,21 @@ void loop() {
             
         }
         else {
-            //display l2p and ang
-            
-            
-            //maybe display p2p and tot
+            //display l2p
+            tft.setTextSize(2);
+            tft.setTextColor(WHITE,BLACK);
+            tft.setCursor(out_l2p_x+out_str_x,out_l2p_y);
+            tft.print(d,3);
+                    
+            //maybe display p2p, tot and ang
             if(!firstCalc) {
                 tot+=d;
-                
+                tft.setCursor(out_tot_x+out_str_x,out_tot_y);
+                tft.print(tot,3);
+                tft.setCursor(out_p2p_x+out_str_x,out_p2p_y);
+                tft.print(dc,3);
+                tft.setCursor(out_ang_x+out_str_x,out_ang_y);
+                tft.print(acos(cosC)*radToDeg,3);
             }
 
             firstCalc = false;
