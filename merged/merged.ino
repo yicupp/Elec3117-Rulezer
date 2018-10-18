@@ -153,7 +153,7 @@ void vectPrint(vector v) {
     dtostrf(v.z,5,4,vzStr);
 
     tft.setTextColor(lcdVectcw,lcdVectcb);
-    sprintf(vectPrintBuf,"x=%s y=%s z=%s",vxStr,vyStr,vzStr);
+    sprintf(vectPrintBuf,"x=%s y=%s z=%s   ",vxStr,vyStr,vzStr);
     tft.print(vectPrintBuf);
 /*    tft.print("x=");
     tft.print(v.x,4);
@@ -373,10 +373,10 @@ void lcdScan() {
     //if (p.z > MINPRESSURE && p.z < MAXPRESSURE) {
         tft.print("("); tft.print(p.x);
         tft.print(", "); tft.print(p.y);
-        tft.println(")");
-        Serial.print("("); Serial.print(p.x);
-        Serial.print(", "); Serial.print(p.y);
-        Serial.println(")");
+        tft.println(")      ");
+        //Serial.print("("); Serial.print(p.x);
+        //Serial.print(", "); Serial.print(p.y);
+        //Serial.println(")");
     //}
     //tft.print(vectPrintBuf);
 }
@@ -574,139 +574,64 @@ void setup() {
 // ===                    MAIN PROGRAM LOOP                     ===
 // ================================================================
 
-void loop() {
-   
-    // wait for MPU interrupt or extra packet(s) available
-    //while (!mpuInterrupt && fifoCount < packetSize) {
-    while(1){
-         
-        if(millis() - runtimeSec > 10) {
-            runtimeSec = millis();
-            mpuGetData();
-            vectGet(&v);
-            vectPrint(v); 
-        }
-        lcdScan();
-        lcdGetCmd();
-        if(lcdCmd==START && lcdValidCmd) {
-            Serial.println("MEASURE");
-        }
-        if(lcdCmd==LASER && lcdValidCmd) {
-            Serial.println("LASER");
-        }
-        if(lcdCmd==RESET && lcdValidCmd) {
-            Serial.println("RESET");
-        }
-        if(lcdCmd==NONE) {
-            Serial.println("NONE");
-        }
-        
-        // other program behavior stuff here
-        // listen for user input 
-        if ( Serial.available() ) 
-        {
-            cmd = Serial.read();
-        }
-        
-        switch(cmd) {
-            case 'O' : 
-                mySerial.write(cmd);
-                lasGetB( TO, buf, BUFSIZE );
-                Serial.print(buf);
-            break;
-            case 'C' : 
-                mySerial.write(cmd);
-                lasGetB( TO, buf, BUFSIZE );
-                Serial.print(buf);
-            break;
-            case 'M' :
-                mySerial.write(cmd);
-                lasGetB( TO, buf, BUFSIZE );
-                Serial.print(buf);
-                lasGetB( TO, buf, BUFSIZE );
-                Serial.print(buf);
-            break;
-            case 'F' :
-                mySerial.write(cmd);
-                lasGetB( TO, buf, BUFSIZE );
-                Serial.print(buf);
-                lasGetB( TO, buf, BUFSIZE );
-                Serial.print(buf);
-            break;
-            case 'P' :
-//                mpu.resetFIFO();delay(5);;
-                mySerial.write('D');    
+bool laserON = false;
+vector *vpp=&vp;
+vector *vpc=&vc;
+bool firstCalc = true;
+long radToDeg = 360/(2*PI);
 
-                lasGetB( TO, buf, BUFSIZE );
-                vectGet(&vc);
-                vectPrint(vc);
-                mpuGetData();
-                Serial.print(buf);
-                lasGetB( TO, buf, BUFSIZE );
-                Serial.print(buf);
-            break;
-            case 'G' :
-                showFifoReset *= -1;
-                Serial.println("Toggled Fifo reset display");                
-            break;
-            case 'I' :
-#ifdef DEBUG_MPU
-                Serial.println("Command I");
-#endif
-                //mpu.resetFIFO();delay(5);;
-                mpuGetData();
-                vectGet(&v);
-                if(showVect == 1) vectPrint(v);                
-            break;
-            case 'U' :
-                mpu.resetFIFO();delay(5);;                
-                mySerial.write('D');
-                
-                lasGetB( TO, buf, BUFSIZE );
-                //mpuGetData();
-                vectGet(&vp);
-                vectPrint(vp);
-                Serial.print(buf);
-                lasGetB( TO, buf, BUFSIZE );
-                sbuf = String(findDigit(buf));
-                dp = sbuf.toDouble() + d_offset;
-                Serial.println("Point 1 set");
-                Serial.print(" Distance is ");
-                Serial.println(dp,4);
-                Serial.println(sbuf);
-                mySerial.write('O');
-                lasGetB( TO, buf, BUFSIZE );
-                Serial.print(buf);
+void loop() {    
+    if(millis() - runtimeSec > 10) {
+        runtimeSec = millis();
+        mpuGetData();
+        vectGet(&v);
+        vectPrint(v); 
+    }
+    lcdScan();
+    lcdGetCmd();
+    if(lcdCmd==START && lcdValidCmd) {
+        lcdCmd=START;
+        Serial.println("MEASURE");
+    }
+    else if(lcdCmd==LASER && lcdValidCmd) {
+        lcdCmd==LASER;
+        Serial.println("LASER");
+    }
+    else if(lcdCmd==RESET && lcdValidCmd) {
+        lcdCmd=RESET;
+        Serial.println("RESET");
+    }
+    else {
+        lcdCmd=NONE;
+        //Serial.println("NONE");
+    }
 
-            break;
-            case 'V' :
-                mpu.resetFIFO();delay(5);;                
-                mySerial.write('D');
-                
-                lasGetB( TO, buf, BUFSIZE );
-                //mpuGetData();
-                vectGet(&vc);
-                vectPrint(vc);
-                Serial.print(buf);
-                lasGetB( TO, buf, BUFSIZE );
-                sbuf = String(findDigit(buf));
-                dc = sbuf.toDouble() + d_offset;
-                Serial.println("Point 2 set");
-                Serial.print(" Distance is ");
-                Serial.println(dc,4);
-                Serial.println(sbuf);
-                mySerial.write('O');
-                lasGetB( TO, buf, BUFSIZE );
-                Serial.print(buf);
+    switch(lcdCmd) {
+        case START:                
+            vector *vtmp;
+            mySerial.write('D');
+            lasGetB( TO, buf, BUFSIZE );
+            vectGet(vpc);
+            vectPrint(*vpc);
 
-            break;
-            case 'A' :
-                //mpu.resetFIFO();delay(5);;
-                mpuGetData();
-                vectGet(&v);
-                vectPrint(v);        
-            break;
-            case 'K' :
+            //swap the vectors
+            vtmp = vpp;
+            vpp = vpc;
+            vpc = vtmp;
+            dp = dc;
+            
+            Serial.print(buf);
+            lasGetB( TO, buf, BUFSIZE );
+            sbuf = String(findDigit(buf));
+            dc = sbuf.toDouble() + d_offset;
+            Serial.println("Point set");
+            Serial.print(" Distance is ");
+            Serial.println(dc,4);
+            Serial.println(sbuf);
+            mySerial.write('O');
+            lasGetB( TO, buf, BUFSIZE );
+            Serial.print(buf);
+            if(!firstCalc) {
                 //calculate cos theta
                 cosC = vectDP(vc, vp) / (vectMag(vc) * vectMag(vp));
                 //use cosine rule
@@ -714,10 +639,153 @@ void loop() {
                 Serial.print("Distance between two points is ");
                 Serial.print(d,4);
                 Serial.println("m");
-            break;
+                Serial.print("Angle between two points is ");
+                Serial.print(acos(cosC)*radToDeg,8);
+                Serial.println("degrees");
+            }
+            firstCalc = false;
+            
+        break;
+        case LASER:
+            if(laserON) {
+                mySerial.write('C');
+                laserON=false;
+                lasGetB( TO, buf, BUFSIZE );  
+                Serial.print(buf);
+            }
+            else {
+                mySerial.write('O');
+                laserON=true;
+                lasGetB( TO, buf, BUFSIZE );
+                Serial.print(buf);
+            }
+        break;
+
+        case RESET:
+            
+        break;
+        
+        case NONE:
+
+        break;
+    }
     
-        }
-        cmd = 'I';
-//        cmd = 'A';
-    }    
+    // other program behavior stuff here
+    // listen for user input 
+    if ( Serial.available() ) 
+    {
+        cmd = Serial.read();
+    }
+    
+    switch(cmd) {
+        case 'O' : 
+            mySerial.write(cmd);
+            lasGetB( TO, buf, BUFSIZE );
+            Serial.print(buf);
+        break;
+        case 'C' : 
+            mySerial.write(cmd);
+            lasGetB( TO, buf, BUFSIZE );
+            Serial.print(buf);
+        break;
+        case 'M' :
+            mySerial.write(cmd);
+            lasGetB( TO, buf, BUFSIZE );
+            Serial.print(buf);
+            lasGetB( TO, buf, BUFSIZE );
+            Serial.print(buf);
+        break;
+        case 'F' :
+            mySerial.write(cmd);
+            lasGetB( TO, buf, BUFSIZE );
+            Serial.print(buf);
+            lasGetB( TO, buf, BUFSIZE );
+            Serial.print(buf);
+        break;
+        case 'P' :
+//                mpu.resetFIFO();delay(5);;
+            mySerial.write('D');    
+
+            lasGetB( TO, buf, BUFSIZE );
+            vectGet(&vc);
+            vectPrint(vc);
+            mpuGetData();
+            Serial.print(buf);
+            lasGetB( TO, buf, BUFSIZE );
+            Serial.print(buf);
+        break;
+        case 'G' :
+            showFifoReset *= -1;
+            Serial.println("Toggled Fifo reset display");                
+        break;
+        case 'I' :
+#ifdef DEBUG_MPU
+            Serial.println("Command I");
+#endif
+            //mpu.resetFIFO();delay(5);;
+            mpuGetData();
+            vectGet(&v);
+            if(showVect == 1) vectPrint(v);                
+        break;
+/*        case 'U' :
+            mpu.resetFIFO();delay(5);;                
+            mySerial.write('D');
+            
+            lasGetB( TO, buf, BUFSIZE );
+            //mpuGetData();
+            vectGet(&vp);
+            vectPrint(vp);
+            Serial.print(buf);
+            lasGetB( TO, buf, BUFSIZE );
+            sbuf = String(findDigit(buf));
+            dp = sbuf.toDouble() + d_offset;
+            Serial.println("Point 1 set");
+            Serial.print(" Distance is ");
+            Serial.println(dp,4);
+            Serial.println(sbuf);
+            mySerial.write('O');
+            lasGetB( TO, buf, BUFSIZE );
+            Serial.print(buf);*/
+
+        break;
+/*        case 'V' :
+            mpu.resetFIFO();delay(5);;                
+            mySerial.write('D');
+            
+            lasGetB( TO, buf, BUFSIZE );
+            //mpuGetData();
+            vectGet(&vc);
+            vectPrint(vc);
+            Serial.print(buf);
+            lasGetB( TO, buf, BUFSIZE );
+            sbuf = String(findDigit(buf));
+            dc = sbuf.toDouble() + d_offset;
+            Serial.println("Point 2 set");
+            Serial.print(" Distance is ");
+            Serial.println(dc,4);
+            Serial.println(sbuf);
+            mySerial.write('O');
+            lasGetB( TO, buf, BUFSIZE );
+            Serial.print(buf);*/
+
+        break;
+        case 'A' :
+            //mpu.resetFIFO();delay(5);;
+            mpuGetData();
+            vectGet(&v);
+            vectPrint(v);        
+        break;
+        case 'K' :
+            //calculate cos theta
+            cosC = vectDP(vc, vp) / (vectMag(vc) * vectMag(vp));
+            //use cosine rule
+            d = sqrt(dc*dc + dp*dp - 2*dc*dp*cosC);
+            Serial.print("Distance between two points is ");
+            Serial.print(d,4);
+            Serial.println("m");
+        break;
+
+    }
+    cmd = 'I';
+//  cmd = 'A'; 
 }
