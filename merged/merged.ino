@@ -341,7 +341,7 @@ struct button {
 #define     unitBut_div   unitBut_x1+unitBut_lx/2-1
 
 #define     disturbStr_x  BOXSIZE/8
-#define     disturbStr_y  BOXSIZE+BOXSIZE*1/2
+#define     disturbStr_y  BOXSIZE+BOXSIZE*1/6
 #define     disturbBar_x  BOXSIZE*3/2
 #define     disturbBar_y  BOXSIZE
 #define     disturbBar_lx BOXSIZE*7/2
@@ -349,24 +349,26 @@ struct button {
 
 
 #define     out_tot_x     BOXSIZE/8
-#define     out_tot_y     BOXSIZE*2
-#define     out_tot_ux    BOSIZE*5/2
-#define     out_tot_uy    BOXSIZE*2
+#define     out_tot_y     60
+#define     out_tot_ux    200
+#define     out_tot_uy    60
 
-#define     out_len_x     BOXSIZE/8
-#define     out_len_y     BOXSIZE*3
-#define     out_len_ux    BOSIZE*5/2
-#define     out_len_uy    BOXSIZE*3
+#define     out_p2p_x     BOXSIZE/8
+#define     out_p2p_y     90
+#define     out_p2p_ux    200
+#define     out_p2p_uy    90
    
-#define     out_dis_x     BOXSIZE/8
-#define     out_dis_y     BOXSIZE*5
-#define     out_dis_ux    BOSIZE*5/2
-#define     out_dis_uy    BOXSIZE*5
+#define     out_l2p_x     BOXSIZE/8
+#define     out_l2p_y     120
+#define     out_l2p_ux    200
+#define     out_l2p_uy    120
 
-#define     out_deg_x     BOXSIZE/8
-#define     out_deg_y     BOXSIZE*4
-#define     out_deg_ux    BOSIZE*5/2
-#define     out_deg_uy    BOXSIZE*4
+#define     out_ang_x     BOXSIZE/8
+#define     out_ang_y     150
+#define     out_ang_ux    200
+#define     out_ang_uy    150
+
+#define     out_str_y     120
 
 void lcdScan() {
     
@@ -521,6 +523,16 @@ void lcd_init() {
     tft.setCursor(disturbStr_x,disturbStr_y);
     tft.println("Movement");
     tft.fillRect(disturbBar_x,disturbBar_y,disturbBar_lx,disturbBar_ly,RED);
+
+    tft.setTextSize(2);
+    tft.setCursor(out_tot_x,out_tot_y);
+    tft.print("TOT D:");
+    tft.setCursor(out_p2p_x,out_p2p_y);
+    tft.print("P2P D:");
+    tft.setCursor(out_l2p_x,out_l2p_y);
+    tft.print("L2P D:");
+    tft.setCursor(out_ang_x,out_ang_y);
+    tft.print("ANGLE:");
     
   //Make ui
      
@@ -641,6 +653,7 @@ bool firstCalc = true;
 long radToDeg = 360/(2*PI);
 char lenMode = MM;
 char angMode = DEG;
+unsigned long tot = 0;
 
 void loop() {    
     if(millis() - runtimeSec > 10) {
@@ -661,16 +674,23 @@ void loop() {
         vectGet(vpc);
         vectPrint(*vpc);
 
-        //swap the vectors
-        vtmp = vpp;
-        vpp = vpc;
-        vpc = vtmp;
-        dp = dc;
+        /*
+         * tft.setTextSize(2);
+    tft.setCursor(out_tot_x,out_tot_y);
+    tft.print("TOT D:");
+    tft.setCursor(out_p2p_x,out_p2p_y);
+    tft.print("P2P D:");
+    tft.setCursor(out_l2p_x,out_l2p_y);
+    tft.print("L2P D:");
+    tft.setCursor(out_ang_x,out_ang_y);
+    tft.print("ANGLE:");
+         */
         
         Serial.print(buf);
         lasGetB( TO, buf, BUFSIZE );
         sbuf = String(findDigit(buf));
         dc = sbuf.toDouble() + d_offset;
+
         Serial.println("Point set");
         Serial.print(" Distance is ");
         Serial.println(dc,4);
@@ -678,24 +698,42 @@ void loop() {
         if(laserON) {
             mySerial.write('O');
         }
-        lasGetB( TO, buf, BUFSIZE );
-        mpu.resetFIFO();
-        Serial.print(buf);
-        if(!firstCalc) {
-            //calculate cos theta
-            cosC = vectDP(vc, vp) / (vectMag(vc) * vectMag(vp));
-            //use cosine rule
-            d = sqrt(dc*dc + dp*dp - 2*dc*dp*cosC);
-            Serial.print("Distance between two points is ");
-            Serial.print(d,4);
-            Serial.println("m");
-            Serial.print("Angle between two points is ");
-            Serial.print(acos(cosC)*radToDeg,8);
-            Serial.println(" degrees");
-        }
+
+        //calculate required values
+        //calculate cos theta
+        cosC = vectDP(vc, vp) / (vectMag(vc) * vectMag(vp));
+        //use cosine rule
+        d = sqrt(dc*dc + dp*dp - 2*dc*dp*cosC);
+        Serial.print("Distance between two points is ");
+        Serial.print(d,4);
+        Serial.println("m");
+        Serial.print("Angle between two points is ");
+        Serial.print(acos(cosC)*radToDeg,8);
+        Serial.println(" degrees");
+
         Serial.println("Complete");
-        firstCalc = false;
+
+        //if error from laser
+        if(dc==0) {
             
+        }
+        else {
+            //display l2p and ang
+            
+            
+            //maybe display p2p and tot
+            if(!firstCalc) {
+                tot+=d;
+                
+            }
+
+            firstCalc = false;
+            //swap the vectors
+            vtmp = vpp;
+            vpp = vpc;
+            vpc = vtmp;
+            dp = dc;
+        }           
     }
     else if(lcdCmd==LASER && lcdValidCmd) {
         lcdCmd==LASER;
@@ -719,10 +757,12 @@ void loop() {
         Serial.println("RESET");
 
         firstCalc = false;
+        tot=0;
     }
     else if(lcdCmd==UNIT_ANG && lcdValidCmd) {
         lcdCmd=UNIT_ANG;
         Serial.println("UNIT_ANG");
+
     }
     else if(lcdCmd==UNIT_LEN && lcdValidCmd) {
         lcdCmd=UNIT_LEN;
