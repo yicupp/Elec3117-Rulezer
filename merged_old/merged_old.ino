@@ -1,3 +1,4 @@
+
 //LCD touchscreen
 // Paint example specifically for the TFTLCD breakout board.
 // If using the Arduino shield, use the tftpaint_shield.pde sketch instead!
@@ -234,6 +235,23 @@ void vectPrint(vector v) {
     tft.setTextColor(lcdVectcw,lcdVectcb);
     sprintf(vectPrintBuf,"x=%s y=%s z=%s   ",vxStr,vyStr,vzStr);
     tft.print(vectPrintBuf);
+/*    tft.print("x=");
+    tft.print(v.x,4);
+    tft.print(" y=");
+    tft.print(v.y,4);
+    tft.print(" z=");
+    tft.println(v.z,4);*/
+    
+    /*Serial.print("Vector: ");
+    Serial.print("x = ");
+    Serial.print(v.x,4);
+    Serial.print(", y = ");
+    Serial.print(v.y,4);
+    Serial.print(", z = ");
+    Serial.println(v.z,4);
+    
+    Serial.println(vectPrintBuf);
+    */
 }
 #define MINPRESSURE 10
 #define MAXPRESSURE 1000
@@ -309,34 +327,49 @@ char *findDigit(char *str) {
 
 double vv[VLEN+1][3]; 
 
-const int MPU_addr=0x68;
-int16_t AcX,AcY,AcZ,Tmp,GyX,GyY,GyZ;
-int xAng, yAng, zAng;
-int minVal=265;
-int maxVal=402;
-
 void mpuGetData() {
-        Wire.beginTransmission(MPU_addr);
-        Wire.write(0x3B);
-        Wire.endTransmission(false);
-        Wire.requestFrom(MPU_addr,14,true);
-        AcX=Wire.read()<<8|Wire.read();
-        AcY=Wire.read()<<8|Wire.read();
-        AcZ=Wire.read()<<8|Wire.read();
-        xAng = map(AcX,minVal,maxVal,-90,90);
-        yAng = map(AcY,minVal,maxVal,-90,90);
-        zAng = map(AcZ,minVal,maxVal,-90,90);
+// get current FIFO count
+#ifdef DEBUG_MPU
+    //Serial.println("get data start");
+#endif
+    
+    fifoCount = mpu.getFIFOCount();
+//    mpu.resetFIFO();
+//    delay(5);
+    // clean buffer
+    if (fifoCount > packetSize) {
+        // reset so we can continue cleanly
+        mpu.resetFIFO();
+        delay(25);
+    }
+    // wait for correct available data length, should be a VERY short wait
+    while (fifoCount < packetSize) fifoCount = mpu.getFIFOCount();
+    // read a packet from FIFO
+#ifdef DEBUG_MPU
+        //Serial.println("Reading data packet");
+#endif
+        mpu.getFIFOBytes(fifoBuffer, packetSize);
+        
+        // track FIFO count here in case there is > 1 packet available
+        // (this lets us immediately read more without waiting for an interrupt)
+        //fifoCount -= packetSize; 
+               
+        // display Euler angles in degrees
+        mpu.dmpGetQuaternion(&q, fifoBuffer);
+        mpu.dmpGetGravity(&gravity, &q);
+        mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
+        myYaw = ypr[0];
+        myPitch = ypr[1];
+        myRoll = ypr[2];
+        vx = sin(myYaw)*cos(myPitch);
+        vy = sin(myYaw)*cos(myPitch);
+        vz = sin(myPitch);
 
-        delay(5);
-        vx=AcX;
-        vy=AcY;
-        vz=AcZ;
-
-/*Serial.println("acc");
-Serial.println(vx);
-Serial.println(vy);
-Serial.println(vz);*/
-
+        //get the average
+        //vv[VLEN].x+=(vx-vv[vi].x)/VLEN;
+        //vv[VLEN].y+=(vx-vv[vi].y)/VLEN;
+        //vv[VLEN].z+=(vz-vv[vi].z)/VLEN;
+        //add item into array
         vv[vi][0]=vx;
         vv[vi][1]=vy;
         vv[vi][2]=vz;
@@ -346,7 +379,40 @@ Serial.println(vz);*/
 
         //now find sum of |v-v_avg|        
         //now find the average differences
+/*        vxDiff=0;vyDiff=0;vzDiff=0;
+        for(int x=0;x<VLEN;x++) {
+            vxDiff+=fabs(vv[vi].x-vv[VLEN].x);
+            vyDiff+=fabs(vv[vi].y-vv[VLEN].y);
+            vzDiff+=fabs(vv[vi].z-vv[VLEN].z);
+        }
+        //Get root mean of the differences
+        vvDiff=pow(pow(vxDiff,2)+pow(vyDiff,2)+pow(vzDiff,2),0.5);
+        vvDiff=vxDiff+vyDiff+vzDiff;
+        int i = vvDiff*100;
+        tft.fillRect(disturbBar_x,disturbBar_y,disturbBar_lx,disturbBar_ly,BLACK);
+        tft.fillRect(disturbBar_x,disturbBar_y,vvDiff,disturbBar_ly,RED);
+        Serial.println(i);*/
 
+        /*double vmin=vv[0].x,vmax=vv[0].x;
+        for(int i=1;i<VLEN;i++) {
+            if(vv[i].x>vmax) vmax=vv[i].x;
+            if(vv[i].x<vmin) vmin=vv[i].x;
+        }
+        vv[VLEN].x=vmax-vmin;
+        
+        vmin=vv[0].y,vmax=vv[0].y;
+        for(int i=1;i<VLEN;i++) {
+            if(vv[i].y>vmax) vmax=vv[i].y;
+            if(vv[i].y<vmin) vmin=vv[i].y;
+        }
+        vv[VLEN].y=vmax-vmin;
+        
+        vmin=vv[0].z,vmax=vv[0].z;
+        for(int i=1;i<VLEN;i++) {
+            if(vv[i].z>vmax) vmax=vv[i].z;
+            if(vv[i].z<vmin) vmin=vv[i].z;
+        }
+        vv[VLEN].z=vmax-vmin;*/
 
         double  vminX=vv[0][0],vmaxX=vv[0][0],
                 vminY=vv[0][1],vmaxY=vv[0][1],
@@ -364,7 +430,7 @@ Serial.println(vz);*/
        // vvDiff=pow(pow(vxDiff,2)+pow(vyDiff,2)+pow(vzDiff,2),0.5);
         //vvDiff=vxDiff+vyDiff+vzDiff;
         //int i = 5000*(fabs(vv[VLEN].x)+fabs(vv[VLEN].y)+fabs(vv[VLEN].z));
-        int i = sqrt(pow(vmaxZ-vminZ,2)+pow(vmaxY-vminY,2)+pow(vmaxX-vminX,2))/60;
+        int i = 2500*(fabs(vmaxZ-vminZ)+fabs(vmaxY-vminY)+fabs(vmaxX-vminX));
         if(i>disturbBar_lx)i=disturbBar_lx;
         
         //i = log(i+1);
@@ -378,6 +444,13 @@ Serial.println(vz);*/
         tft.fillRect(disturbBar_x,disturbBar_y,disturbBar_lx,disturbBar_ly,BLACK);
         tft.fillRect(disturbBar_x,disturbBar_y,i,disturbBar_ly,barCol);
         Serial.println(i);
+        
+//            Serial.print("xyz\t");
+//            Serial.print(vx);
+//            Serial.print("\t");
+//            Serial.print(vy);
+//            Serial.print("\t");
+//            Serial.println(vz);
         
         // blink LED to indicate activity
         //blinkState = !blinkState;
@@ -409,6 +482,10 @@ void lcdScan() {
     tft.setTextColor(lcdVectcw,lcdVectcb);
     //sprintf(vectPrintBuf,"P: x=%d y=%d z=%d",p.x,p.y,p.z);
     //if (p.z > MINPRESSURE && p.z < MAXPRESSURE) {
+        /*tft.print("("); tft.print(p.x);
+        tft.print(", "); tft.print(p.y);
+        tft.print(", "); tft.print(p.z);
+        tft.println(")   ");*/
         //Serial.print("("); Serial.print(p.x);
         //Serial.print(", "); Serial.print(p.y);
         //Serial.println(")");
@@ -435,15 +512,57 @@ void lcdGetCmd() {
     //lcdDB = millis()-softDbounceT>SOFT_DBOUNCE_TIME;
     if (p.z > MINPRESSURE && p.z < MAXPRESSURE) {
         if(p.x>=startBut_x1 && p.x<=startBut_x2 && p.y>=startBut_y1 && p.y <= startBut_y2) {
+            /*if(lcdCmd != START) {
+                lcdCmd=START;
+                //softDbounceT=millis();
+                lcdValidCmd = true;
+            }
+            else if(lcdDB) {
+                lcdCmd=START;
+                //softDbounceT=millis();
+                lcdValidCmd = true;
+            }*/
             lcdCmd=START;
         }
         else if(p.x>=setBut_x1 && p.x<=setBut_x2 && p.y>=setBut_y1 && p.y <= setBut_y2){
+            /*if(lcdCmd != LASER) {
+                lcdCmd=LASER;
+                //softDbounceT=millis();
+                lcdValidCmd = true;
+            }
+            else if(lcdDB) {
+                lcdCmd=LASER;
+                //softDbounceT=millis();
+                lcdValidCmd = true;
+            }*/
             lcdCmd=LASER;
         }
         else if(p.x>=resetBut_x1 && p.x<=resetBut_x2 && p.y>=resetBut_y1 && p.y <= resetBut_y2){
+            /*if(lcdCmd != RESET) {
+                lcdCmd=RESET;
+                //softDbounceT=millis();
+                lcdValidCmd = true;
+            }
+            else if(lcdDB) {
+                lcdCmd=RESET;
+                //softDbounceT=millis();
+                lcdValidCmd = true;
+            }*/
             lcdCmd=RESET;
         }
         else if(p.x>=unitBut_x1 && p.x<=unitBut_x2 && p.y>=unitBut_y1 && p.y <= unitBut_y2){
+            /*if((lcdCmd != UNIT_ANG || lcdCmd != UNIT_LEN)) {
+                if(p.x<unitBut_div) lcdCmd=UNIT_LEN;
+                else lcdCmd=UNIT_ANG;
+                //softDbounceT=millis();
+                lcdValidCmd = true;
+            }
+            else if(lcdDB) {
+                if(p.x<unitBut_div) lcdCmd=UNIT_LEN;
+                else lcdCmd=UNIT_ANG;
+                //softDbounceT=millis();
+                lcdValidCmd = true;
+            }*/
             if(p.x<unitBut_div) lcdCmd=UNIT_LEN;
             else lcdCmd=UNIT_ANG;
         }
@@ -457,7 +576,7 @@ void lcdGetCmd() {
 
 void lcd_init() {
     //Serial.println(F("Initialising LCD FUNCTION"));    
-    tft.begin(0x8230);
+    tft.begin(0x9341);
 
     tft.fillScreen(BLACK);
     tft.setRotation(1);
@@ -472,16 +591,7 @@ void lcd_init() {
     tft.fillRect(resetBut_x1,resetBut_y1,resetBut_lx ,resetBut_ly , resetBut_c);
     tft.fillRect(unitBut_x1,unitBut_y1,unitBut_lx ,unitBut_ly , unitBut_c);
 
-    tft.setCursor(325-BOXSIZE*2,BOXSIZE*9/4);
-    tft.setCursor(320-BOXSIZE*2,BOXSIZE*8/4);
-    tft.setTextColor(WHITE);
-    tft.setTextSize(2);
-    tft.print("Laser");
-    
-    tft.setCursor(320-BOXSIZE*2,BOXSIZE*14/4);
-    tft.setTextColor(WHITE);
-    tft.setTextSize(2);
-    tft.print("Reset");
+
 
     tft.setCursor(310-BOXSIZE*2,BOXSIZE*2/4);
     tft.setTextColor(BLACK);
@@ -523,6 +633,13 @@ void lcd_init() {
 // ================================================================
 
 void setup() {
+    // join I2C bus (I2Cdev library doesn't do this automatically)
+    #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
+        Wire.begin();
+        TWBR = 24; // 400kHz I2C clock (200kHz if CPU is 8MHz)
+    #elif I2CDEV_IMPLEMENTATION == I2CDEV_BUILTIN_FASTWIRE
+        Fastwire::setup(400, true);
+    #endif
 
     // initialize serial communication
     Serial.begin(19200);
@@ -530,15 +647,48 @@ void setup() {
 
     // initialize device
     //Serial.println(F("Initializing I2C devices..."));
-    //Init MPU6050
-    Wire.begin();
-    Wire.beginTransmission(MPU_addr);
-    Wire.write(0x6B);
-    Wire.write(0);
-    Wire.endTransmission(true);
+    mpu.initialize();
 
     //Serial.println(F("Initialising LCD"));
     lcd_init();
+
+    // verify connection
+    //Serial.println(F("Testing device connections..."));
+    //Serial.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed"));
+    mpu.testConnection();
+    // wait for ready
+/*    Serial.println(F("\nSend any character to begin DMP programming and demo: "));
+    while (Serial.available() && Serial.read()); // empty buffer
+    while (!Serial.available());                 // wait for data
+    while (Serial.available() && Serial.read()); // empty buffer again*/
+
+    // load and configure the DMP
+    //Serial.println(F("Initializing DMP..."));
+    devStatus = mpu.dmpInitialize();
+
+    // supply your own gyro offsets here, scaled for min sensitivity
+    mpu.setXGyroOffset(220);
+    mpu.setYGyroOffset(76);
+    mpu.setZGyroOffset(-85);
+    mpu.setZAccelOffset(1788); // 1688 factory default for my test chip
+
+    // make sure it worked (returns 0 if so)
+    if (devStatus == 0) {
+        // turn on the DMP, now that it's ready
+//        Serial.println(F("Enabling DMP..."));
+        mpu.setDMPEnabled(true);
+
+        // get expected DMP packet size for later comparison
+        packetSize = mpu.dmpGetFIFOPacketSize();
+    } else {
+        // ERROR!
+        // 1 = initial memory load failed
+        // 2 = DMP configuration updates failed
+        // (if it's going to break, usually the code will be 1)
+//        Serial.print(F("DMP Initialization failed (code "));
+//        Serial.print(devStatus);
+//        Serial.println(F(")"));
+    }
 
     // configure LED for output
     //pinMode(LED_PIN, OUTPUT);
@@ -549,6 +699,25 @@ void setup() {
     
     // Start the software serial for communication with the ESP8266
     mySerial.begin(19200);  
+ 
+//    Serial.println("");
+//    Serial.println(F("3117  YEEEEEEEEEEEEEEET\n"));
+//    Serial.println(F("***********************************************\n"));
+//    Serial.println("");    
+    
+    //unsigned long stab_start_t = millis();
+//    Serial.print(F("Waiting for MPU to stabilise for "));
+//    Serial.print(MPU_STAB_TIME);
+//    Serial.println(F(" ms"));
+    //while(millis() - stab_start_t < MPU_STAB_TIME) {
+    //    mpu.resetFIFO();
+    //    mpuGetData();
+    //    vectGet(&v);
+    //}
+//    Serial.println(F("Start YEEEEEEEEEEEEEEET\n"));
+//    Serial.println(F("***********************************************\n"));
+    //runtimeStart = millis();
+    //runtimeSec = millis();
 
     mySerial.write('C');
     lasGetB( TO, buf, BUFSIZE ); 
@@ -634,6 +803,12 @@ void printAngle(int colour) {
 }
 
 void loop() {    
+    /*if(millis() - runtimeSec > 10) {
+        runtimeSec = millis();
+        mpuGetData();
+        vectGet(&v);
+        vectPrint(v); 
+    }*/
     lcdScan();
     lcdGetCmd();
     if(lcdCmd==START) {
@@ -682,14 +857,13 @@ void loop() {
         else {      
             resetFlag=false;
             numCalc++;
-                        
+            printLengths(WHITE);             
             //maybe display p2p, tot and ang
             if(numCalc>1) {
                 angVal = acos(cosC);
                 printAngle(WHITE);
-                tot=tot+d;
+                tot+=d;
             }
-            printLengths(WHITE); 
             //swap the vectors
             vtmp = vpp;
             vpp = vpc;
@@ -731,6 +905,14 @@ void loop() {
         dc=0;
         tft.setTextSize(2);
         tft.setTextColor(WHITE,BLACK);
+        /*tft.setCursor(out_l2p_x+out_str_x,out_l2p_y);
+        tft.print("          ");
+        tft.setCursor(out_tot_x+out_str_x,out_tot_y);
+        tft.print("          ");
+        tft.setCursor(out_p2p_x+out_str_x,out_p2p_y);
+        tft.print("          ");
+        tft.setCursor(out_ang_x+out_str_x,out_ang_y);
+        tft.print("          ");*/
         tft.fillRect(out_tot_x+out_str_x,out_tot_y,120,105,BLACK);
     }
     else if(lcdCmd==UNIT_ANG) {
