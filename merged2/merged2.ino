@@ -587,8 +587,8 @@ double tot = 0;
 double dScale = 1;
 int dMode = ME;
 
-#define M2CM  100
-#define M2MM  1000
+#define M2CM  0.1
+#define M2MM  0.01
 #define M2INC  39.37007874
 #define M2FT  M2INC/12
 bool resetFlag = true;
