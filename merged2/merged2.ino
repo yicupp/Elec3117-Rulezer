@@ -337,6 +337,11 @@ Serial.println(vx);
 Serial.println(vy);
 Serial.println(vz);*/
 
+        //get the average
+        //vv[VLEN].x+=(vx-vv[vi].x)/VLEN;
+        //vv[VLEN].y+=(vx-vv[vi].y)/VLEN;
+        //vv[VLEN].z+=(vz-vv[vi].z)/VLEN;
+        //add item into array
         vv[vi][0]=vx;
         vv[vi][1]=vy;
         vv[vi][2]=vz;
@@ -346,7 +351,40 @@ Serial.println(vz);*/
 
         //now find sum of |v-v_avg|        
         //now find the average differences
+/*        vxDiff=0;vyDiff=0;vzDiff=0;
+        for(int x=0;x<VLEN;x++) {
+            vxDiff+=fabs(vv[vi].x-vv[VLEN].x);
+            vyDiff+=fabs(vv[vi].y-vv[VLEN].y);
+            vzDiff+=fabs(vv[vi].z-vv[VLEN].z);
+        }
+        //Get root mean of the differences
+        vvDiff=pow(pow(vxDiff,2)+pow(vyDiff,2)+pow(vzDiff,2),0.5);
+        vvDiff=vxDiff+vyDiff+vzDiff;
+        int i = vvDiff*100;
+        tft.fillRect(disturbBar_x,disturbBar_y,disturbBar_lx,disturbBar_ly,BLACK);
+        tft.fillRect(disturbBar_x,disturbBar_y,vvDiff,disturbBar_ly,RED);
+        Serial.println(i);*/
 
+        /*double vmin=vv[0].x,vmax=vv[0].x;
+        for(int i=1;i<VLEN;i++) {
+            if(vv[i].x>vmax) vmax=vv[i].x;
+            if(vv[i].x<vmin) vmin=vv[i].x;
+        }
+        vv[VLEN].x=vmax-vmin;
+        
+        vmin=vv[0].y,vmax=vv[0].y;
+        for(int i=1;i<VLEN;i++) {
+            if(vv[i].y>vmax) vmax=vv[i].y;
+            if(vv[i].y<vmin) vmin=vv[i].y;
+        }
+        vv[VLEN].y=vmax-vmin;
+        
+        vmin=vv[0].z,vmax=vv[0].z;
+        for(int i=1;i<VLEN;i++) {
+            if(vv[i].z>vmax) vmax=vv[i].z;
+            if(vv[i].z<vmin) vmin=vv[i].z;
+        }
+        vv[VLEN].z=vmax-vmin;*/
 
         double  vminX=vv[0][0],vmaxX=vv[0][0],
                 vminY=vv[0][1],vmaxY=vv[0][1],
@@ -379,6 +417,13 @@ Serial.println(vz);*/
         tft.fillRect(disturbBar_x,disturbBar_y,i,disturbBar_ly,barCol);
         Serial.println(i);
         
+//            Serial.print("xyz\t");
+//            Serial.print(vx);
+//            Serial.print("\t");
+//            Serial.print(vy);
+//            Serial.print("\t");
+//            Serial.println(vz);
+        
         // blink LED to indicate activity
         //blinkState = !blinkState;
         //digitalWrite(LED_PIN, blinkState);    
@@ -409,6 +454,10 @@ void lcdScan() {
     tft.setTextColor(lcdVectcw,lcdVectcb);
     //sprintf(vectPrintBuf,"P: x=%d y=%d z=%d",p.x,p.y,p.z);
     //if (p.z > MINPRESSURE && p.z < MAXPRESSURE) {
+        /*tft.print("("); tft.print(p.x);
+        tft.print(", "); tft.print(p.y);
+        tft.print(", "); tft.print(p.z);
+        tft.println(")   ");*/
         //Serial.print("("); Serial.print(p.x);
         //Serial.print(", "); Serial.print(p.y);
         //Serial.println(")");
@@ -435,15 +484,57 @@ void lcdGetCmd() {
     //lcdDB = millis()-softDbounceT>SOFT_DBOUNCE_TIME;
     if (p.z > MINPRESSURE && p.z < MAXPRESSURE) {
         if(p.x>=startBut_x1 && p.x<=startBut_x2 && p.y>=startBut_y1 && p.y <= startBut_y2) {
+            /*if(lcdCmd != START) {
+                lcdCmd=START;
+                //softDbounceT=millis();
+                lcdValidCmd = true;
+            }
+            else if(lcdDB) {
+                lcdCmd=START;
+                //softDbounceT=millis();
+                lcdValidCmd = true;
+            }*/
             lcdCmd=START;
         }
         else if(p.x>=setBut_x1 && p.x<=setBut_x2 && p.y>=setBut_y1 && p.y <= setBut_y2){
+            /*if(lcdCmd != LASER) {
+                lcdCmd=LASER;
+                //softDbounceT=millis();
+                lcdValidCmd = true;
+            }
+            else if(lcdDB) {
+                lcdCmd=LASER;
+                //softDbounceT=millis();
+                lcdValidCmd = true;
+            }*/
             lcdCmd=LASER;
         }
         else if(p.x>=resetBut_x1 && p.x<=resetBut_x2 && p.y>=resetBut_y1 && p.y <= resetBut_y2){
+            /*if(lcdCmd != RESET) {
+                lcdCmd=RESET;
+                //softDbounceT=millis();
+                lcdValidCmd = true;
+            }
+            else if(lcdDB) {
+                lcdCmd=RESET;
+                //softDbounceT=millis();
+                lcdValidCmd = true;
+            }*/
             lcdCmd=RESET;
         }
         else if(p.x>=unitBut_x1 && p.x<=unitBut_x2 && p.y>=unitBut_y1 && p.y <= unitBut_y2){
+            /*if((lcdCmd != UNIT_ANG || lcdCmd != UNIT_LEN)) {
+                if(p.x<unitBut_div) lcdCmd=UNIT_LEN;
+                else lcdCmd=UNIT_ANG;
+                //softDbounceT=millis();
+                lcdValidCmd = true;
+            }
+            else if(lcdDB) {
+                if(p.x<unitBut_div) lcdCmd=UNIT_LEN;
+                else lcdCmd=UNIT_ANG;
+                //softDbounceT=millis();
+                lcdValidCmd = true;
+            }*/
             if(p.x<unitBut_div) lcdCmd=UNIT_LEN;
             else lcdCmd=UNIT_ANG;
         }
@@ -540,6 +631,47 @@ void setup() {
     //Serial.println(F("Initialising LCD"));
     lcd_init();
 
+<<<<<<< HEAD
+=======
+    // verify connection
+    //Serial.println(F("Testing device connections..."));
+    //Serial.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed"));
+    mpu.testConnection();
+    // wait for ready
+/*    Serial.println(F("\nSend any character to begin DMP programming and demo: "));
+    while (Serial.available() && Serial.read()); // empty buffer
+    while (!Serial.available());                 // wait for data
+    while (Serial.available() && Serial.read()); // empty buffer again*/
+
+    // load and configure the DMP
+    //Serial.println(F("Initializing DMP..."));
+    devStatus = mpu.dmpInitialize();
+
+    // supply your own gyro offsets here, scaled for min sensitivity
+    mpu.setXGyroOffset(220);
+    mpu.setYGyroOffset(76);
+    mpu.setZGyroOffset(-85);
+    mpu.setZAccelOffset(1788); // 1688 factory default for my test chip
+
+    // make sure it worked (returns 0 if so)
+    if (devStatus == 0) {
+        // turn on the DMP, now that it's ready
+//        Serial.println(F("Enabling DMP..."));
+        mpu.setDMPEnabled(true);
+
+        // get expected DMP packet size for later comparison
+        packetSize = mpu.dmpGetFIFOPacketSize();
+    } else {
+        // ERROR!
+        // 1 = initial memory load failed
+        // 2 = DMP configuration updates failed
+        // (if it's going to break, usually the code will be 1)
+//        Serial.print(F("DMP Initialization failed (code "));
+//        Serial.print(devStatus);
+//        Serial.println(F(")"));
+    }
+
+>>>>>>> parent of c4bbdfc... removed comments
     // configure LED for output
     //pinMode(LED_PIN, OUTPUT);
 
@@ -634,6 +766,12 @@ void printAngle(int colour) {
 }
 
 void loop() {    
+    /*if(millis() - runtimeSec > 10) {
+        runtimeSec = millis();
+        mpuGetData();
+        vectGet(&v);
+        vectPrint(v); 
+    }*/
     lcdScan();
     lcdGetCmd();
     if(lcdCmd==START) {
@@ -731,6 +869,14 @@ void loop() {
         dc=0;
         tft.setTextSize(2);
         tft.setTextColor(WHITE,BLACK);
+        /*tft.setCursor(out_l2p_x+out_str_x,out_l2p_y);
+        tft.print("          ");
+        tft.setCursor(out_tot_x+out_str_x,out_tot_y);
+        tft.print("          ");
+        tft.setCursor(out_p2p_x+out_str_x,out_p2p_y);
+        tft.print("          ");
+        tft.setCursor(out_ang_x+out_str_x,out_ang_y);
+        tft.print("          ");*/
         tft.fillRect(out_tot_x+out_str_x,out_tot_y,120,105,BLACK);
     }
     else if(lcdCmd==UNIT_ANG) {
