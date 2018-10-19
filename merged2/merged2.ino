@@ -209,7 +209,7 @@ char vzStr[10]={'\0'};
 #define     status_x      BOXSIZE/8
 #define     status_y      195
 
-#define     VLEN          15
+#define     VLEN          20
 int vi = 0;
 //vector vv[VLEN+1];
 
@@ -448,11 +448,11 @@ void lcdGetCmd() {
             else lcdCmd=UNIT_ANG;
         }
     }
-    else {
-        //if(lcdDB) {
+    /*else {
+        if(lcdDB) {
             lcdCmd=NONE;
-        //}
-    }
+        }
+    }*/
 }
 
 void lcd_init() {
