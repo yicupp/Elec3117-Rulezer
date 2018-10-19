@@ -121,17 +121,17 @@ double vz = 0;
 
 //math code
 struct vector {
-    double x=0;
-    double y=0;
-    double z=0;
+    double x;
+    double y;
+    double z;
 };
 
 double d = 0;
-double d_offset = 0.065; //offset of 30mm => the wall between mic and rest of the board
+double d_offset = 0.070; //offset of 30mm => the wall between mic and rest of the board
 
 #define lcdVectx1   5
 #define lcdVecty1   220
-#define lcdVectx2   220
+#define lcdVectx2   120
 #define lcdVecty2   230
 #define lcdVectlx   lcdVectx2-lcdVectx1
 #define lcdVectly   lcdVecty2-lcdVecty1
@@ -209,12 +209,6 @@ char vzStr[10]={'\0'};
 #define     status_x      BOXSIZE/8
 #define     status_y      195
 
-#define     VLEN          20
-int vi = 0;
-//vector vv[VLEN+1];
-
-
-
 void statusPrint(char* myStr,int MYCOLOUR) {
     tft.setTextSize(3);
     tft.setCursor(status_x,status_y);
@@ -273,16 +267,10 @@ void vectGet(vector *v) {
     (*v).z = vz;
 }
 
-//for average finding
-double vxDiff=0;
-double vyDiff=0;
-double vzDiff=0;
-double vvDiff=0;
-
 //Make some globals 
-vector vc; //current measurement vector
-vector vp; //previous measurement vector
-vector v;  //current mpu vector
+vector vc = {0,0,0}; //current measurement vector
+vector vp = {0,0,0}; //previous measurement vector
+vector v = {0,0,0};  //current mpu vector
 double dc = 0;
 double dp = 0;
 double cosC = 0;
@@ -324,7 +312,7 @@ char *findDigit(char *str) {
     return str;
 }
 
-double vv[VLEN+1][3]; 
+
 
 void mpuGetData() {
 // get current FIFO count
@@ -360,90 +348,10 @@ void mpuGetData() {
         myYaw = ypr[0];
         myPitch = ypr[1];
         myRoll = ypr[2];
-        vx = sin(myYaw)*cos(myPitch);
+        vx = cos(myYaw)*cos(myPitch);
         vy = sin(myYaw)*cos(myPitch);
         vz = sin(myPitch);
 
-        //get the average
-        //vv[VLEN].x+=(vx-vv[vi].x)/VLEN;
-        //vv[VLEN].y+=(vx-vv[vi].y)/VLEN;
-        //vv[VLEN].z+=(vz-vv[vi].z)/VLEN;
-        //add item into array
-        vv[vi][0]=vx;
-        vv[vi][1]=vy;
-        vv[vi][2]=vz;
-        vi++;
-        vi%=VLEN;
-        //array sorted
-
-        //now find sum of |v-v_avg|        
-        //now find the average differences
-/*        vxDiff=0;vyDiff=0;vzDiff=0;
-        for(int x=0;x<VLEN;x++) {
-            vxDiff+=fabs(vv[vi].x-vv[VLEN].x);
-            vyDiff+=fabs(vv[vi].y-vv[VLEN].y);
-            vzDiff+=fabs(vv[vi].z-vv[VLEN].z);
-        }
-        //Get root mean of the differences
-        vvDiff=pow(pow(vxDiff,2)+pow(vyDiff,2)+pow(vzDiff,2),0.5);
-        vvDiff=vxDiff+vyDiff+vzDiff;
-        int i = vvDiff*100;
-        tft.fillRect(disturbBar_x,disturbBar_y,disturbBar_lx,disturbBar_ly,BLACK);
-        tft.fillRect(disturbBar_x,disturbBar_y,vvDiff,disturbBar_ly,RED);
-        Serial.println(i);*/
-
-        /*double vmin=vv[0].x,vmax=vv[0].x;
-        for(int i=1;i<VLEN;i++) {
-            if(vv[i].x>vmax) vmax=vv[i].x;
-            if(vv[i].x<vmin) vmin=vv[i].x;
-        }
-        vv[VLEN].x=vmax-vmin;
-        
-        vmin=vv[0].y,vmax=vv[0].y;
-        for(int i=1;i<VLEN;i++) {
-            if(vv[i].y>vmax) vmax=vv[i].y;
-            if(vv[i].y<vmin) vmin=vv[i].y;
-        }
-        vv[VLEN].y=vmax-vmin;
-        
-        vmin=vv[0].z,vmax=vv[0].z;
-        for(int i=1;i<VLEN;i++) {
-            if(vv[i].z>vmax) vmax=vv[i].z;
-            if(vv[i].z<vmin) vmin=vv[i].z;
-        }
-        vv[VLEN].z=vmax-vmin;*/
-
-        double  vminX=vv[0][0],vmaxX=vv[0][0],
-                vminY=vv[0][1],vmaxY=vv[0][1],
-                vminZ=vv[0][2],vmaxZ=vv[0][2];
-
-        for(int i=1;i<VLEN;i++) {
-            if(vv[i][0]>vmaxX) vmaxX=vv[i][0];
-            if(vv[i][0]<vminX) vminX=vv[i][0];
-            if(vv[i][1]>vmaxY) vmaxY=vv[i][1];
-            if(vv[i][1]<vminY) vminY=vv[i][1];
-            if(vv[i][2]>vmaxZ) vmaxZ=vv[i][2];
-            if(vv[i][2]<vminZ) vminZ=vv[i][2]; 
-        }
-
-       // vvDiff=pow(pow(vxDiff,2)+pow(vyDiff,2)+pow(vzDiff,2),0.5);
-        //vvDiff=vxDiff+vyDiff+vzDiff;
-        //int i = 5000*(fabs(vv[VLEN].x)+fabs(vv[VLEN].y)+fabs(vv[VLEN].z));
-        int i = 5000*(fabs(vmaxX-vminX)+fabs(vmaxY-vminY)+fabs(vmaxZ-vminZ));
-        //if(i>disturbBar_lx)i=disturbBar_lx;
-        
-        i = log(i+1);
-        int barCol = GREEN;
-        if(i>75) {
-            barCol=RED;
-        }
-        else if(i>25) {
-            barCol=YELLOW;
-        }
-        tft.fillRect(disturbBar_x,disturbBar_y,disturbBar_lx,disturbBar_ly,BLACK);
-        tft.fillRect(disturbBar_x,disturbBar_y,i,disturbBar_ly,barCol);
-        Serial.println(i);
-        
 //            Serial.print("xyz\t");
 //            Serial.print(vx);
 //            Serial.print("\t");
@@ -504,11 +412,12 @@ int lcdPrevCmd = NONE;
 unsigned long softDbounceT = 0;
 #define SOFT_DBOUNCE_TIME 1000
 bool lcdDB = true;
-
+bool lcdValidCmd = true;
 
 
 void lcdGetCmd() {
     //lcdDB = millis()-softDbounceT>SOFT_DBOUNCE_TIME;
+    lcdValidCmd = false;
     if (p.z > MINPRESSURE && p.z < MAXPRESSURE) {
         if(p.x>=startBut_x1 && p.x<=startBut_x2 && p.y>=startBut_y1 && p.y <= startBut_y2) {
             /*if(lcdCmd != START) {
@@ -566,15 +475,16 @@ void lcdGetCmd() {
             else lcdCmd=UNIT_ANG;
         }
     }
-    /*else {
+    else {
         if(lcdDB) {
             lcdCmd=NONE;
         }
-    }*/
+    }
+    lcdValidCmd = true;
 }
 
 void lcd_init() {
-    //Serial.println(F("Initialising LCD FUNCTION"));    
+    Serial.println(F("Initialising LCD FUNCTION"));    
     tft.begin(0x8230);
 
     tft.fillScreen(BLACK);
@@ -620,7 +530,7 @@ void lcd_init() {
     tft.setTextColor(WHITE);
     tft.setCursor(disturbStr_x,disturbStr_y);
     tft.println("Movement");
-    //tft.fillRect(disturbBar_x,disturbBar_y,disturbBar_lx,disturbBar_ly,RED);
+    tft.fillRect(disturbBar_x,disturbBar_y,disturbBar_lx,disturbBar_ly,RED);
 
     tft.setTextSize(2);
     tft.setCursor(out_tot_x,out_tot_y);
@@ -654,16 +564,16 @@ void setup() {
     while (!Serial); // wait for Leonardo enumeration, others continue immediately
 
     // initialize device
-    //Serial.println(F("Initializing I2C devices..."));
+    Serial.println(F("Initializing I2C devices..."));
     mpu.initialize();
 
-    //Serial.println(F("Initialising LCD"));
+    Serial.println(F("Initialising LCD"));
     lcd_init();
 
     // verify connection
-    //Serial.println(F("Testing device connections..."));
-    //Serial.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed"));
-    mpu.testConnection();
+    Serial.println(F("Testing device connections..."));
+    Serial.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed"));
+
     // wait for ready
 /*    Serial.println(F("\nSend any character to begin DMP programming and demo: "));
     while (Serial.available() && Serial.read()); // empty buffer
@@ -671,7 +581,7 @@ void setup() {
     while (Serial.available() && Serial.read()); // empty buffer again*/
 
     // load and configure the DMP
-    //Serial.println(F("Initializing DMP..."));
+    Serial.println(F("Initializing DMP..."));
     devStatus = mpu.dmpInitialize();
 
     // supply your own gyro offsets here, scaled for min sensitivity
@@ -713,23 +623,23 @@ void setup() {
 //    Serial.println(F("***********************************************\n"));
 //    Serial.println("");    
     
-    //unsigned long stab_start_t = millis();
+    unsigned long stab_start_t = millis();
 //    Serial.print(F("Waiting for MPU to stabilise for "));
 //    Serial.print(MPU_STAB_TIME);
 //    Serial.println(F(" ms"));
-    //while(millis() - stab_start_t < MPU_STAB_TIME) {
-    //    mpu.resetFIFO();
-    //    mpuGetData();
-    //    vectGet(&v);
-    //}
+    while(millis() - stab_start_t < MPU_STAB_TIME) {
+        mpu.resetFIFO();
+        mpuGetData();
+        vectGet(&v);
+    }
 //    Serial.println(F("Start YEEEEEEEEEEEEEEET\n"));
 //    Serial.println(F("***********************************************\n"));
-    //runtimeStart = millis();
-    //runtimeSec = millis();
+    runtimeStart = millis();
+    runtimeSec = millis();
 
     mySerial.write('C');
     lasGetB( TO, buf, BUFSIZE ); 
-    delay(500); 
+            
     statusPrint("READY    ",GREEN);
 }
 
@@ -811,15 +721,15 @@ void printAngle(int colour) {
 }
 
 void loop() {    
-    /*if(millis() - runtimeSec > 10) {
+    if(millis() - runtimeSec > 10) {
         runtimeSec = millis();
         mpuGetData();
         vectGet(&v);
         vectPrint(v); 
-    }*/
+    }
     lcdScan();
     lcdGetCmd();
-    if(lcdCmd==START) {
+    if(lcdCmd==START && lcdValidCmd) {
         lcdCmd=START;
 //        Serial.println("MEASURE");
         statusPrint("MEASURING  ",YELLOW);
@@ -880,7 +790,7 @@ void loop() {
             statusPrint("MEASURED  ",GREEN);
         }           
     }
-    else if(lcdCmd==LASER) {
+    else if(lcdCmd==LASER && lcdValidCmd) {
         lcdCmd==LASER;
         //Serial.println("LASER");
 
@@ -901,7 +811,7 @@ void loop() {
             delay(300);
         }
     }
-    else if(lcdCmd==RESET) {
+    else if(lcdCmd==RESET && lcdValidCmd) {
         lcdCmd=RESET;
         //Serial.println("RESET");
 
@@ -923,7 +833,7 @@ void loop() {
         tft.print("          ");*/
         tft.fillRect(out_tot_x+out_str_x,out_tot_y,120,105,BLACK);
     }
-    else if(lcdCmd==UNIT_ANG) {
+    else if(lcdCmd==UNIT_ANG && lcdValidCmd) {
         lcdCmd=UNIT_ANG;
         //Serial.println("UNIT_ANG");
 
@@ -940,7 +850,7 @@ void loop() {
         printAngle(CYAN);    
         delay(300);
     }
-    else if(lcdCmd==UNIT_LEN) {
+    else if(lcdCmd==UNIT_LEN && lcdValidCmd) {
         lcdCmd=UNIT_LEN;
         //Serial.println("UNIT_LEN");
         //get new mode
