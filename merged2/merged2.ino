@@ -315,6 +315,7 @@ int xAng, yAng, zAng;
 int minVal=265;
 int maxVal=402;
 
+<<<<<<< HEAD
 void mpuGetData() {
         Wire.beginTransmission(MPU_addr);
         Wire.write(0x3B);
@@ -337,6 +338,8 @@ Serial.println(vx);
 Serial.println(vy);
 Serial.println(vz);*/
 
+=======
+>>>>>>> parent of c4bbdfc... removed comments
         //get the average
         //vv[VLEN].x+=(vx-vv[vi].x)/VLEN;
         //vv[VLEN].y+=(vx-vv[vi].y)/VLEN;
